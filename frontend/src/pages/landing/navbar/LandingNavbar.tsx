@@ -1,25 +1,11 @@
 import { useState } from "react";
 import { Home, Wallet, CircleHelp, Blocks, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useWallet } from "@/hooks/useWallet";
 
 export default function LandingNavbar() {
   const [isOpen, setIsOpen] = useState(false);
-
-  const connectWallet = async () => {
-    if (typeof window.ethereum !== 'undefined') {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        
-        if (accounts.length > 0) {
-          console.log('Connected with account:', accounts[0]);
-        }
-      } catch (error) {
-        alert('Please connect your MetaMask wallet to continue');
-      }
-    } else {
-      alert('Please install MetaMask to use this feature');
-    }
-  };
+  const { connectWallet } = useWallet();
 
   const scrollToSection = (id: string) => {
     const section = document.getElementById(id);

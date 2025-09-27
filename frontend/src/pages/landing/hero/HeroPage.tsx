@@ -3,24 +3,16 @@ import { TextAnimate } from "@/components/ui/text-animate";
 import { Link } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useWallet } from "@/hooks/useWallet";
 
 export function HeroPage() {
     const navigate = useNavigate();
+    const { connectWallet } = useWallet();
 
-    const connectWallet = async () => {
-        if (typeof window.ethereum !== 'undefined') {
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                
-                if (accounts.length > 0) {
-                    localStorage.setItem('walletAddress', accounts[0]);
-                    navigate("/user/home");
-                }
-            } catch (error) {
-                alert('Please connect your MetaMask wallet to continue');
-            }
-        } else {
-            alert('Please install MetaMask to use this feature');
+    const handleConnectWallet = async () => {
+        const success = await connectWallet();
+        if (success) {
+            navigate("/user/home");
         }
     };
 
@@ -60,7 +52,7 @@ export function HeroPage() {
                 >
                     <Button
                         className="bg-gray-800 text-white font-extrabold text-lg px-8 py-4 border-4 border-black shadow-[6px_6px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
-                        onClick={connectWallet}
+                        onClick={handleConnectWallet}
                     >
                         🦊 CONNECT WALLET (METAMASK)
                     </Button>

@@ -6,8 +6,13 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
+import { useWallet } from "@/hooks/useWallet";
 
 export default function Home() {
+  const { address, formatAddress, isConnected, isLoading } = useWallet();
+
+  // Display placeholder if wallet not connected or still loading
+  const displayAddress = isConnected && address ? formatAddress(address) : "0x1234...5678";
 
   return (
     <div className="max-w-7xl mx-auto py-8">
@@ -24,7 +29,23 @@ export default function Home() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="border-4 border-black bg-white p-3 font-mono text-sm">
-                0x1234...5678
+                {isLoading ? (
+                  <div className="animate-pulse">Loading wallet...</div>
+                ) : isConnected ? (
+                  <div className="flex items-center justify-between">
+                    <span>{displayAddress}</span>
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded border">
+                      Connected
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">Not connected</span>
+                    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded border">
+                      Disconnected
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="border-4 border-black bg-[#0ea5a4] p-3 text-center">
@@ -68,8 +89,8 @@ export default function Home() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="default" className="w-full font-extrabold">
-                    Capture Zone: Mint NFT
+              <Button variant="default" className="w-full font-extrabold" disabled={!isConnected}>
+                {isConnected ? "Capture Zone: Mint NFT" : "Connect Wallet to Mint"}
               </Button>
             </CardFooter>
           </Card>
