@@ -6,47 +6,104 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { useWallet } from "@/hooks/useWallet";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Home() {
-  const { address, formatAddress, isConnected, isLoading } = useWallet();
+  const auth = useAuth();
 
   // Display placeholder if wallet not connected or still loading
-  const displayAddress = isConnected && address ? formatAddress(address) : "0x1234...5678";
+  const displayAddress = auth.isWalletConnected && auth.walletAddress 
+    ? auth.formatWalletAddress(auth.walletAddress) 
+    : "0x1234...5678";
 
   return (
     <div className="max-w-7xl mx-auto py-8">
+      {/* Welcome Banner */}
+      <div className="mb-8 p-6 bg-gradient-to-r from-purple-600 to-pink-600 border-4 border-black text-white rounded-lg">
+        <h1 className="text-3xl font-black mb-2">
+          Welcome to FitConquer! 🏃‍♂️
+        </h1>
+        <p className="text-lg">
+          {auth.stravaAthlete?.name && `Hey ${auth.stravaAthlete.name}! `}
+          Ready to conquer your city and mint zone NFTs?
+        </p>
+      </div>
+
       <div className="grid lg:grid-cols-3 gap-8 h-[800px]">
         <div className="lg:col-span-1 flex flex-col gap-8 h-full">
-          <Card className="border-4  flex-1">
+          <Card className="border-4 flex-1">
             <CardHeader className="text-center">
               <div className="w-20 h-20 bg-[#ec4899] border-4 border-black rounded-full mx-auto mb-4 flex items-center justify-center">
-                <span className="text-3xl font-black text-white">C</span>
+                {auth.stravaAthlete?.profile_picture ? (
+                  <img 
+                    src={auth.stravaAthlete.profile_picture} 
+                    alt="Profile" 
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-3xl font-black text-white">
+                    {auth.stravaAthlete?.name?.[0] || 'R'}
+                  </span>
+                )}
               </div>
               <CardTitle className="text-2xl font-black uppercase">
                 Runner Stats
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="border-4 border-black bg-white p-3 font-mono text-sm">
-                {isLoading ? (
-                  <div className="animate-pulse">Loading wallet...</div>
-                ) : isConnected ? (
-                  <div className="flex items-center justify-between">
-                    <span>{displayAddress}</span>
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded border">
-                      Connected
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500">Not connected</span>
-                    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded border">
-                      Disconnected
-                    </span>
-                  </div>
-                )}
+              {/* Wallet Info */}
+              <div className="border-4 border-black bg-white p-3">
+                <h4 className="font-bold mb-2">🦊 Wallet</h4>
+                <div className="font-mono text-sm">
+                  {auth.isLoading ? (
+                    <div className="animate-pulse">Loading wallet...</div>
+                  ) : auth.isWalletConnected ? (
+                    <div className="flex items-center justify-between">
+                      <span>{displayAddress}</span>
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded border">
+                        Connected
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Not connected</span>
+                      <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded border">
+                        Disconnected
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Strava Info */}
+              <div className="border-4 border-black bg-white p-3">
+                <h4 className="font-bold mb-2">🏃‍♂️ Strava</h4>
+                <div className="text-sm">
+                  {auth.isLoading ? (
+                    <div className="animate-pulse">Loading Strava...</div>
+                  ) : auth.isStravaConnected ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{auth.stravaAthlete?.name}</span>
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded border">
+                          Connected
+                        </span>
+                      </div>
+                      {auth.stravaAthlete?.username && (
+                        <div className="text-gray-600">@{auth.stravaAthlete.username}</div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Not connected</span>
+                      <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded border">
+                        Disconnected
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="border-4 border-black bg-[#0ea5a4] p-3 text-center">
                   <div className="text-2xl font-black">247</div>
@@ -89,8 +146,8 @@ export default function Home() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="default" className="w-full font-extrabold" disabled={!isConnected}>
-                {isConnected ? "Capture Zone: Mint NFT" : "Connect Wallet to Mint"}
+              <Button variant="default" className="w-full font-extrabold" disabled={!auth.isBothConnected}>
+                {auth.isBothConnected ? "Capture Zone: Mint NFT" : "Connect Both Accounts to Mint"}
               </Button>
             </CardFooter>
           </Card>
