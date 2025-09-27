@@ -79,13 +79,13 @@ export const AppSidebar = () => {
 
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={() => handleNavigate("gallery", "/nft-gallery")}
+              onClick={() => handleNavigate("gallery", "/user/nft-gallery")}
               isActive={activeTab === "gallery"}
-              className={`px-4 py-3 text-lg border-4    font-bold uppercase 
+              className={`px-4 py-3 text-lg border-4 border-black    font-bold uppercase 
                 transition-transform hover:scale-100
                 ${
                   activeTab === "gallery"
-                    ? "bg-[#fbbf24] text-black"
+                    ? "bg-[#0ea5a4] text-white"
                     : "bg-white dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700"
                 }`}
             >
@@ -107,7 +107,7 @@ export const AppSidebar = () => {
                 }`}
             >
               <Trophy className="w-6 h-6" />
-              <span>Leaderboard</span>
+              <span>Market Place</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
