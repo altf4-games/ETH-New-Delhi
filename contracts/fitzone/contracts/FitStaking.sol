@@ -29,10 +29,10 @@ contract FitStaking is ReentrancyGuard, Ownable {
 
     // Platform fee percentage (5%)
     uint256 public constant PLATFORM_FEE = 5;
-    
+
     // Reward multipliers (as percentages)
     uint256 public constant SUCCESS_REWARD = 110; // 10% bonus
-    uint256 public constant FAILURE_PENALTY = 70;  // 30% loss
+    uint256 public constant FAILURE_PENALTY = 70; // 30% loss
 
     // Minimum stake amount (0.001 ETH)
     uint256 public constant MIN_STAKE = 0.001 ether;
@@ -70,7 +70,7 @@ contract FitStaking is ReentrancyGuard, Ownable {
         require(estimatedTime > 0, "Invalid time");
 
         uint256 runId = nextRunId++;
-        
+
         runStakes[runId] = RunStake({
             runner: msg.sender,
             stakeAmount: msg.value,
@@ -107,7 +107,7 @@ contract FitStaking is ReentrancyGuard, Ownable {
         uint256 actualTime
     ) external nonReentrant {
         RunStake storage run = runStakes[runId];
-        
+
         require(run.runner == msg.sender, "Not your run");
         require(!run.completed, "Run already completed");
         require(actualDistance > 0, "Invalid distance");
@@ -120,7 +120,7 @@ contract FitStaking is ReentrancyGuard, Ownable {
 
         // Simple success criteria: completed at least 80% of target distance
         bool success = actualDistance >= (run.targetDistance * 80) / 100;
-        
+
         uint256 reward;
         if (success) {
             // Success: return stake + 10% bonus
@@ -165,7 +165,7 @@ contract FitStaking is ReentrancyGuard, Ownable {
         // Base algorithm: 0.001 ETH per km + 50% for motivation
         uint256 baseStake = (distanceInMeters * 1e15) / 1000; // 0.001 ETH per km
         suggestedStake = (baseStake * 150) / 100; // Add 50% motivation factor
-        
+
         // Ensure minimum stake
         if (suggestedStake < MIN_STAKE) {
             suggestedStake = MIN_STAKE;
@@ -177,7 +177,9 @@ contract FitStaking is ReentrancyGuard, Ownable {
      * @param user User address
      * @return runIds Array of run IDs
      */
-    function getUserRuns(address user) external view returns (uint256[] memory) {
+    function getUserRuns(
+        address user
+    ) external view returns (uint256[] memory) {
         return userRuns[user];
     }
 
@@ -218,19 +220,25 @@ contract FitStaking is ReentrancyGuard, Ownable {
     /**
      * @dev Get contract stats
      */
-    function getStats() external view returns (
-        uint256 totalRuns,
-        uint256 totalStaked,
-        uint256 totalRewards,
-        uint256 contractBalance
-    ) {
+    function getStats()
+        external
+        view
+        returns (
+            uint256 totalRuns,
+            uint256 totalStaked,
+            uint256 totalRewards,
+            uint256 contractBalance
+        )
+    {
         totalRuns = nextRunId - 1;
-        
+
         for (uint256 i = 1; i < nextRunId; i++) {
             totalStaked += runStakes[i].stakeAmount;
         }
-        
+
         contractBalance = address(this).balance;
-        totalRewards = totalStaked > contractBalance ? totalStaked - contractBalance : 0;
+        totalRewards = totalStaked > contractBalance
+            ? totalStaked - contractBalance
+            : 0;
     }
 }
