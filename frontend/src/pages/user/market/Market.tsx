@@ -351,28 +351,68 @@ export const Market: React.FC = () => {
             </Dialog>
 
             {/* Comet NFT View */}
-            <Dialog open={showCometView} onOpenChange={setShowCometView}>
-                <DialogContent className="border-4 border-black max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="text-2xl font-black">Comet NFT</DialogTitle>
-                    </DialogHeader>
-                    {selectedNft && (
+            {showCometView && selectedNft && (
+                <div className="fixed inset-0 z-50 overflow-hidden">
+                    <div className="absolute inset-0 bg-black/80" onClick={() => setShowCometView(false)} />
+                    <div className="relative flex h-full items-center justify-center">
+                        <button
+                            onClick={() => setShowCometView(false)}
+                            className="absolute right-4 top-4 z-50 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <path d="M18 6L6 18M6 6l12 12" />
+                            </svg>
+                        </button>
                         <CometCard>
                             <div
-                                className="flex flex-col items-center justify-center p-6 rounded-xl bg-[#1F2121] text-white"
-                                style={{ backgroundColor: selectedNft.color }}
+                                className="my-10 flex w-80 cursor-pointer flex-col items-stretch rounded-[16px] border-0 bg-[#1F2121] p-2 md:my-20 md:p-4"
+                                style={{
+                                    transformStyle: "preserve-3d",
+                                    transform: "none",
+                                    opacity: 1,
+                                }}
                             >
-                                <div className="font-mono text-3xl font-black mb-4">{selectedNft.id}</div>
-                                <div className="text-lg font-bold">{selectedNft.location}</div>
-                                <div className="mt-4 font-bold">Power: {selectedNft.power}%</div>
-                                <div className="mt-2 px-3 py-1 border-2 border-white rounded font-bold">
-                                    {selectedNft.rarity}
+                                <div className="mx-2 flex-1">
+                                    <div className="relative mt-2 aspect-[3/4] w-full">
+                                        <div
+                                            className="absolute inset-0 h-full w-full rounded-[16px] bg-black object-cover contrast-75"
+                                            style={{
+                                                backgroundColor: selectedNft.color,
+                                                boxShadow: "rgba(0, 0, 0, 0.05) 0px 5px 6px 0px",
+                                                opacity: 1,
+                                            }}
+                                        >
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                                                <div className="font-mono text-2xl font-black mb-4">{selectedNft.id}</div>
+                                                <div className="font-bold text-lg">{selectedNft.location}</div>
+                                                <div className="mt-4 font-bold">Power: {selectedNft.power}%</div>
+                                                <div className="mt-2 px-3 py-1 border-2 border-white rounded font-bold">
+                                                    {selectedNft.rarity}
+                                                </div>
+                                                <div className="mt-4 font-bold text-lg">{selectedNft.price} ETH</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-2 flex flex-shrink-0 items-center justify-between p-4 font-mono text-white">
+                                    <div className="text-xs">Zone NFT</div>
+                                    <div className="text-xs text-gray-300 opacity-50">#{selectedNft.id}</div>
                                 </div>
                             </div>
                         </CometCard>
-                    )}
-                </DialogContent>
-            </Dialog>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
