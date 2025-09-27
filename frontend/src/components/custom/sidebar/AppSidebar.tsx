@@ -23,6 +23,27 @@ export const AppSidebar = () => {
     navigate(route);
   };
 
+  const handleLogout = async () => {
+    try {
+      if (typeof window.ethereum !== 'undefined') {
+        await window.ethereum.request({
+          method: "eth_accounts",
+          params: []
+        });
+
+        await window.ethereum.request({
+          method: "wallet_revokePermissions",
+          params: [{ eth_accounts: {} }]
+        });
+      }
+    } catch (error) {
+      console.error('Error disconnecting from MetaMask:', error);
+    } finally {
+      localStorage.removeItem('walletAddress');
+      navigate('/');
+    }
+  };
+
   return (
     <Sidebar
       collapsible="icon"
@@ -96,6 +117,7 @@ export const AppSidebar = () => {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
+              onClick={handleLogout}
               className="px-4 py-3 text-lg border-4 border-black    font-bold uppercase bg-white hover:bg-red-500 hover:text-white transition-transform hover:scale-100"
             >
               <LogOut className="w-6 h-6" />
