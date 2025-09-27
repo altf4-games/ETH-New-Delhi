@@ -3,8 +3,8 @@ import Landing from "@/pages/landing/Landing";
 import Home from "@/pages/user/home/Home";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Route, Routes } from "react-router-dom";
-import { NFTGallery } from "@/pages/user/nft-gallery/NftGallery";
 import { Market } from "@/pages/user/market/Market";
+import { NFTGallery } from "@/pages/user/nft-gallery/NftGallery";
 
 
 const AppRoutes = () => {
