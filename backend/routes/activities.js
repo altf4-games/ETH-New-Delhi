@@ -425,23 +425,25 @@ router.get("/stats", async (req, res) => {
 
         const { access_token } = tokenResponse.data;
         console.log("Token refreshed successfully, retrying stats fetch...");
-        
+
         // Try again with the new token
         const result = await tryFetchStats(access_token);
-        
+
         // Include the new token in the response so frontend can update it
         return res.json({
           ...result,
           newAccessToken: access_token,
-          refreshedToken: true
+          refreshedToken: true,
         });
-        
       } catch (refreshError) {
-        console.error("Token refresh failed:", refreshError.response?.data || refreshError.message);
+        console.error(
+          "Token refresh failed:",
+          refreshError.response?.data || refreshError.message
+        );
         return res.status(401).json({
           error: "Token expired and refresh failed",
           message: "Please re-authorize with Strava",
-          needsReauth: true
+          needsReauth: true,
         });
       }
     }
