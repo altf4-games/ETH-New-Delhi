@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitConquer API Tester</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background: #f7f9fa;
+            padding: 20px;
+            border-bottom: 2px solid #e1e8ed;
+        }
+        
+        .section-header h2 {
+            color: #1da1f2;
+            margin-bottom: 10px;
+        }
+        
+        .section-body {
+            padding: 20px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .warning {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        }
+        
+        .output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .wallet-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .wallet-info.connected {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background: #28a745;
+        }
+        
+        .status-offline {
+            background: #dc3545;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏃‍♂️ FitConquer API Tester</h1>
+            <p>Test all core functionality: Strava OAuth, MetaMask, Zone Capture, and Leaderboards</p>
+        </div>
+        
+        <div class="content">
+            <!-- Connection Status -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>🔗 Connection Status</h2>
+                    <p>Check backend and wallet connectivity</p>
+                </div>
+                <div class="section-body">
+                    <div class="wallet-info" id="walletStatus">
+                        <div><span class="status-indicator status-offline"></span>Backend: <span id="backendStatus">Disconnected</span></div>
+                        <div><span class="status-indicator status-offline"></span>MetaMask: <span id="metamaskStatus">Not Connected</span></div>
+                        <div id="walletAddress" style="margin-top: 10px; font-family: monospace;"></div>
+                    </div>
+                    <div class="button-group">
+                        <button onclick="checkBackend()">Check Backend</button>
+                        <button onclick="connectWallet()" class="success">Connect MetaMask</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Authentication Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>🔐 Authentication</h2>
+                    <p>Strava OAuth and MetaMask wallet connection</p>
+                </div>
+                <div class="section-body">
+                    <div class="button-group">
+                        <button onclick="loginStrava()" class="success">Login with Strava</button>
+                        <button onclick="connectWalletToBackend()" class="success">Connect Wallet to Backend</button>
+                        <button onclick="testAuth()">Test Auth Status</button>
+                    </div>
+                    <div class="output" id="authOutput"></div>
+                </div>
+            </div>
+
+            <!-- Activity Management -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>🏃 Activity Management</h2>
+                    <p>Import and view Strava activities</p>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label for="stravaToken">Strava Access Token:</label>
+                        <input type="text" id="stravaToken" placeholder="Enter Strava access token">
+                    </div>
+                    <div class="button-group">
+                        <button onclick="importActivities()" class="success">Import Activities</button>
+                        <button onclick="getActivities()">Get My Activities</button>
+                        <button onclick="generateMockActivity()" class="warning">Generate Mock Activity</button>
+                    </div>
+                    <div class="output" id="activityOutput"></div>
+                </div>
+            </div>
+
+            <!-- Zone Capture -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>🗺️ Zone Capture</h2>
+                    <p>Test zone capture with blockchain integration</p>
+                </div>
+                <div class="section-body">
+                    <div class="grid">
+                        <div>
+                            <div class="form-group">
+                                <label for="latitude">Latitude:</label>
+                                <input type="number" id="latitude" step="0.000001" placeholder="40.7128" value="40.7128">
+                            </div>
+                            <div class="form-group">
+                                <label for="longitude">Longitude:</label>
+                                <input type="number" id="longitude" step="0.000001" placeholder="-74.0060" value="-74.0060">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="form-group">
+                                <label for="h3Index">H3 Index (optional):</label>
+                                <input type="text" id="h3Index" placeholder="Auto-calculated from lat/lng">
+                            </div>
+                            <div class="form-group">
+                                <label for="captureScore">Capture Score:</label>
+                                <input type="number" id="captureScore" placeholder="100" value="100">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button onclick="captureZone()" class="success">Capture Zone</button>
+                        <button onclick="getZoneInfo()">Get Zone Info</button>
+                        <button onclick="getMyZones()">Get My Zones</button>
+                        <button onclick="simulateBlockchainCapture()" class="warning">Simulate Blockchain Capture</button>
+                    </div>
+                    <div class="output" id="zoneOutput"></div>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>🏆 Leaderboard</h2>
+                    <p>View rankings and competitive stats</p>
+                </div>
+                <div class="section-body">
+                    <div class="form-group">
+                        <label for="leaderboardPeriod">Period:</label>
+                        <select id="leaderboardPeriod">
+                            <option value="alltime">All Time</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                    </div>
+                    <div class="button-group">
+                        <button onclick="getLeaderboard()">Get Leaderboard</button>
+                        <button onclick="getMyRank()">Get My Rank</button>
+                    </div>
+                    <div class="output" id="leaderboardOutput"></div>
+                </div>
+            </div>
+
+            <!-- Advanced Testing -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>🔧 Advanced Testing</h2>
+                    <p>Test edge cases and error handling</p>
+                </div>
+                <div class="section-body">
+                    <div class="button-group">
+                        <button onclick="testInvalidRequests()" class="danger">Test Invalid Requests</button>
+                        <button onclick="testRateLimiting()" class="warning">Test Rate Limiting</button>
+                        <button onclick="loadTestData()" class="success">Load Test Data</button>
+                        <button onclick="clearAllData()" class="danger">Clear Test Data</button>
+                    </div>
+                    <div class="output" id="advancedOutput"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'http://localhost:3000/api';
+        const CONTRACT_ADDRESS = '0x8aE80E558cB19EB9c966761313a61C8fF280Fa68';
+        
+        let currentWallet = null;
+        let currentProvider = null;
+
+        // Utility Functions
+        function log(elementId, message, type = 'info') {
+            const output = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const typeEmoji = {
+                'info': 'ℹ️',
+                'success': '✅',
+                'error': '❌',
+                'warning': '⚠️'
+            };
+            
+            output.innerHTML += `<div style="margin-bottom: 10px; padding: 8px; border-left: 4px solid ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#17a2b8'}; background-color: ${type === 'error' ? '#f8d7da' : type === 'success' ? '#d4edda' : type === 'warning' ? '#fff3cd' : '#d1ecf1'};">
+                <strong>[${timestamp}] ${typeEmoji[type]}</strong> ${message}
+            </div>`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function formatJSON(obj) {
+            return JSON.stringify(obj, null, 2);
+        }
+
+        // Backend Connectivity
+        async function checkBackend() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    document.getElementById('backendStatus').textContent = 'Connected';
+                    document.querySelector('#walletStatus .status-indicator').className = 'status-indicator status-online';
+                    log('authOutput', 'Backend is online and responsive', 'success');
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                document.getElementById('backendStatus').textContent = 'Error: ' + error.message;
+                log('authOutput', `Backend connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        // MetaMask Integration
+        async function connectWallet() {
+            try {
+                if (typeof window.ethereum !== 'undefined') {
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    
+                    const signer = provider.getSigner();
+                    const address = await signer.getAddress();
+                    
+                    currentWallet = address;
+                    currentProvider = provider;
+                    
+                    document.getElementById('metamaskStatus').textContent = 'Connected';
+                    document.getElementById('walletAddress').textContent = `Wallet: ${address}`;
+                    document.querySelectorAll('#walletStatus .status-indicator')[1].className = 'status-indicator status-online';
+                    document.getElementById('walletStatus').className = 'wallet-info connected';
+                    
+                    log('authOutput', `MetaMask connected: ${address}`, 'success');
+                } else {
+                    throw new Error('MetaMask not detected');
+                }
+            } catch (error) {
+                log('authOutput', `MetaMask connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Authentication
+        async function loginStrava() {
+            const clientId = '178667';
+            const redirectUri = encodeURIComponent(`${API_BASE}/auth/strava/callback`);
+            const scope = 'read,activity:read_all';
+            const stravaUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scope}`;
+            
+            log('authOutput', 'Opening Strava OAuth...', 'info');
+            
+            // Open in popup and listen for callback
+            const popup = window.open(stravaUrl, 'strava_oauth', 'width=600,height=600');
+            
+            // Listen for message from callback window
+            const messageListener = (event) => {
+                if (event.data && event.data.success && event.data.athlete) {
+                    log('authOutput', `Strava login successful! Welcome ${event.data.athlete.name}`, 'success');
+                    log('authOutput', `Athlete data: ${formatJSON(event.data.athlete)}`, 'success');
+                    
+                    // Store Strava token for later use
+                    if (event.data.access_token) {
+                        document.getElementById('stravaToken').value = event.data.access_token;
+                        log('authOutput', 'Strava token automatically filled in Activity section', 'info');
+                    }
+                    
+                    window.removeEventListener('message', messageListener);
+                    
+                    if (popup) {
+                        popup.close();
+                    }
+                }
+            };
+            
+            window.addEventListener('message', messageListener);
+            
+            // Clean up if popup is closed manually
+            const checkClosed = setInterval(() => {
+                if (popup.closed) {
+                    clearInterval(checkClosed);
+                    window.removeEventListener('message', messageListener);
+                    log('authOutput', 'Strava OAuth window was closed', 'warning');
+                }
+            }, 1000);
+        }
+
+        async function connectWalletToBackend() {
+            if (!currentWallet) {
+                log('authOutput', 'Please connect MetaMask first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/wallet`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        walletAddress: currentWallet
+                    })
+                });
+
+                const result = await response.json();
+                log('authOutput', `Wallet connection result: ${formatJSON(result)}`, response.ok ? 'success' : 'error');
+            } catch (error) {
+                log('authOutput', `Wallet connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAuth() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/status`);
+                const result = await response.json();
+                log('authOutput', `Auth status: ${formatJSON(result)}`, response.ok ? 'success' : 'warning');
+            } catch (error) {
+                log('authOutput', `Auth status check failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Activity Management
+        async function importActivities() {
+            if (!currentWallet) {
+                log('activityOutput', 'Please connect MetaMask first', 'error');
+                return;
+            }
+
+            const token = document.getElementById('stravaToken').value;
+            if (!token) {
+                log('activityOutput', 'Please enter Strava access token', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/activities/import`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        walletAddress: currentWallet,
+                        stravaToken: token
+                    })
+                });
+
+                const result = await response.json();
+                log('activityOutput', `Import result: ${formatJSON(result)}`, response.ok ? 'success' : 'error');
+            } catch (error) {
+                log('activityOutput', `Import failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function getActivities() {
+            if (!currentWallet) {
+                log('activityOutput', 'Please connect MetaMask first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/activities?walletAddress=${currentWallet}`);
+                const result = await response.json();
+                log('activityOutput', `Activities: ${formatJSON(result)}`, 'success');
+            } catch (error) {
+                log('activityOutput', `Get activities failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function generateMockActivity() {
+            const mockActivity = {
+                id: Math.floor(Math.random() * 1000000),
+                name: 'Test Run ' + new Date().toLocaleTimeString(),
+                type: 'Run',
+                distance: Math.floor(Math.random() * 10000) + 1000,
+                moving_time: Math.floor(Math.random() * 3600) + 300,
+                start_date: new Date().toISOString(),
+                map: {
+                    summary_polyline: 'mock_polyline_' + Math.random()
+                }
+            };
+            
+            log('activityOutput', `Generated mock activity: ${formatJSON(mockActivity)}`, 'info');
+        }
+
+        // Zone Capture
+        async function captureZone() {
+            if (!currentWallet) {
+                log('zoneOutput', 'Please connect MetaMask first', 'error');
+                return;
+            }
+
+            const lat = parseFloat(document.getElementById('latitude').value);
+            const lng = parseFloat(document.getElementById('longitude').value);
+            const score = parseInt(document.getElementById('captureScore').value) || 100;
+
+            if (isNaN(lat) || isNaN(lng)) {
+                log('zoneOutput', 'Please enter valid latitude and longitude', 'error');
+                return;
+            }
+
+            try {
+                // Simulate transaction hash
+                const mockTxHash = '0x' + Math.random().toString(16).substr(2, 64);
+                
+                const response = await fetch(`${API_BASE}/zones/capture`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        lat: lat,
+                        lng: lng,
+                        walletAddress: currentWallet,
+                        transactionHash: mockTxHash,
+                        captureScore: score
+                    })
+                });
+
+                const result = await response.json();
+                log('zoneOutput', `Zone capture result: ${formatJSON(result)}`, response.ok ? 'success' : 'error');
+            } catch (error) {
+                log('zoneOutput', `Zone capture failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function getZoneInfo() {
+            let h3Index = document.getElementById('h3Index').value;
+            
+            if (!h3Index) {
+                const lat = parseFloat(document.getElementById('latitude').value);
+                const lng = parseFloat(document.getElementById('longitude').value);
+                
+                if (isNaN(lat) || isNaN(lng)) {
+                    log('zoneOutput', 'Please enter H3 index or valid coordinates', 'error');
+                    return;
+                }
+                
+                // Mock H3 index generation
+                h3Index = '871fb46d5ffffff';
+                log('zoneOutput', `Using mock H3 index: ${h3Index}`, 'info');
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/zones/${h3Index}`);
+                const result = await response.json();
+                log('zoneOutput', `Zone info: ${formatJSON(result)}`, 'success');
+            } catch (error) {
+                log('zoneOutput', `Get zone info failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function getMyZones() {
+            if (!currentWallet) {
+                log('zoneOutput', 'Please connect MetaMask first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/zones?walletAddress=${currentWallet}`);
+                const result = await response.json();
+                log('zoneOutput', `My zones: ${formatJSON(result)}`, 'success');
+            } catch (error) {
+                log('zoneOutput', `Get zones failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function simulateBlockchainCapture() {
+            if (!currentProvider) {
+                log('zoneOutput', 'Please connect MetaMask first', 'error');
+                return;
+            }
+
+            try {
+                log('zoneOutput', 'Simulating blockchain transaction...', 'info');
+                
+                // Mock contract interaction
+                const mockTransaction = {
+                    hash: '0x' + Math.random().toString(16).substr(2, 64),
+                    blockNumber: Math.floor(Math.random() * 1000000),
+                    gasUsed: '21000',
+                    status: 1
+                };
+                
+                log('zoneOutput', `Mock transaction: ${formatJSON(mockTransaction)}`, 'success');
+                
+            } catch (error) {
+                log('zoneOutput', `Blockchain simulation failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Leaderboard
+        async function getLeaderboard() {
+            const period = document.getElementById('leaderboardPeriod').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/leaderboard?period=${period}`);
+                const result = await response.json();
+                log('leaderboardOutput', `Leaderboard (${period}): ${formatJSON(result)}`, 'success');
+            } catch (error) {
+                log('leaderboardOutput', `Get leaderboard failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function getMyRank() {
+            if (!currentWallet) {
+                log('leaderboardOutput', 'Please connect MetaMask first', 'error');
+                return;
+            }
+
+            try {
+                // Mock rank calculation
+                const mockRank = {
+                    rank: Math.floor(Math.random() * 100) + 1,
+                    totalPoints: Math.floor(Math.random() * 5000),
+                    totalActivities: Math.floor(Math.random() * 50),
+                    zonesOwned: Math.floor(Math.random() * 20)
+                };
+                
+                log('leaderboardOutput', `My rank: ${formatJSON(mockRank)}`, 'info');
+            } catch (error) {
+                log('leaderboardOutput', `Get rank failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Advanced Testing
+        async function testInvalidRequests() {
+            log('advancedOutput', 'Testing invalid requests...', 'info');
+            
+            const tests = [
+                { url: `${API_BASE}/zones/capture`, method: 'POST', body: {}, desc: 'Empty capture request' },
+                { url: `${API_BASE}/zones/invalid_h3`, method: 'GET', desc: 'Invalid H3 index' },
+                { url: `${API_BASE}/activities?walletAddress=invalid`, method: 'GET', desc: 'Invalid wallet address' }
+            ];
+
+            for (const test of tests) {
+                try {
+                    const response = await fetch(test.url, {
+                        method: test.method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: test.body ? JSON.stringify(test.body) : undefined
+                    });
+                    
+                    const result = await response.json();
+                    log('advancedOutput', `${test.desc}: ${response.status} - ${formatJSON(result)}`, response.ok ? 'warning' : 'error');
+                } catch (error) {
+                    log('advancedOutput', `${test.desc}: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function testRateLimiting() {
+            log('advancedOutput', 'Testing rate limiting (sending 5 rapid requests)...', 'info');
+            
+            const promises = Array(5).fill().map(() => 
+                fetch(`${API_BASE}/leaderboard`).then(r => r.json())
+            );
+            
+            try {
+                const results = await Promise.all(promises);
+                log('advancedOutput', `Rate limit test completed: ${results.length} responses received`, 'success');
+            } catch (error) {
+                log('advancedOutput', `Rate limit test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadTestData() {
+            log('advancedOutput', 'Loading test data...', 'info');
+            // This would typically populate the database with test users, activities, and zones
+            log('advancedOutput', 'Test data loaded (simulated)', 'success');
+        }
+
+        async function clearAllData() {
+            if (confirm('Are you sure you want to clear all test data?')) {
+                log('advancedOutput', 'Clearing test data...', 'warning');
+                // This would typically clear test data from the database
+                log('advancedOutput', 'Test data cleared (simulated)', 'success');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('authOutput', 'FitConquer API Tester initialized', 'success');
+            checkBackend();
+        });
+    </script>
+</body>
+</html>
