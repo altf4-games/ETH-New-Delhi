@@ -6,6 +6,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import { CometCard } from "@/components/ui/comet-card";
 import {
     Dialog,
     DialogContent,
@@ -19,7 +20,12 @@ export const Market: React.FC = () => {
     const [filterBy, setFilterBy] = useState("all");
     const [selectedNft, setSelectedNft] = useState<typeof marketNFTs[0] | null>(null);
     const [showBuyDialog, setShowBuyDialog] = useState(false);
+    const [showCometView, setShowCometView] = useState(false);
 
+    const handleViewNft = (nft: typeof marketNFTs[0]) => {
+        setSelectedNft(nft);
+        setShowCometView(true);
+    };
 
     const handleBuy = (nft: typeof marketNFTs[0]) => {
         setSelectedNft(nft);
@@ -28,7 +34,7 @@ export const Market: React.FC = () => {
 
     const confirmBuy = () => {
         if (selectedNft) {
-            console.log('Buying NFT:', selectedNft.id, 'for', selectedNft.price, 'ETH');
+            console.log("Buying NFT:", selectedNft.id, "for", selectedNft.price, "ETH");
         }
         setShowBuyDialog(false);
         setSelectedNft(null);
@@ -130,24 +136,19 @@ export const Market: React.FC = () => {
                 </p>
             </div>
 
-
             <div className="grid md:grid-cols-2 gap-6 mb-8">
                 <Card className="border-4 border-black text-center p-6 bg-[#0ea5a4]/10">
                     <CardHeader>
                         <CardTitle className="text-3xl font-black">6</CardTitle>
                     </CardHeader>
-                    <CardContent className="font-bold uppercase">
-                        Listed NFTs
-                    </CardContent>
+                    <CardContent className="font-bold uppercase">Listed NFTs</CardContent>
                 </Card>
 
                 <Card className="border-4 border-black text-center p-6 bg-[#fbbf24]/10">
                     <CardHeader>
                         <CardTitle className="text-3xl font-black">3.1</CardTitle>
                     </CardHeader>
-                    <CardContent className="font-bold uppercase">
-                        ETH Volume
-                    </CardContent>
+                    <CardContent className="font-bold uppercase">ETH Volume</CardContent>
                 </Card>
             </div>
 
@@ -158,10 +159,11 @@ export const Market: React.FC = () => {
                         <Button
                             key={filter}
                             onClick={() => setFilterBy(filter)}
-                            className={`px-4 py-2 font-bold uppercase tracking-wide border-4 border-black transition-all ${filterBy === filter
-                                ? "bg-[#fbbf24] text-black"
-                                : "bg-white text-black hover:bg-gray-100"
-                                }`}
+                            className={`px-4 py-2 font-bold uppercase tracking-wide border-4 border-black transition-all ${
+                                filterBy === filter
+                                    ? "bg-[#fbbf24] text-black"
+                                    : "bg-white text-black hover:bg-gray-100"
+                            }`}
                         >
                             {filter}
                         </Button>
@@ -170,18 +172,21 @@ export const Market: React.FC = () => {
 
                 <div className="flex flex-wrap gap-2">
                     <span className="font-bold text-lg">SORT:</span>
-                    {[{ value: "price-low", label: "Price ↑" }, { value: "price-high", label: "Price ↓" }].map((sort) => (
-                        <Button
-                            key={sort.value}
-                            onClick={() => setSortBy(sort.value)}
-                            className={`px-4 py-2 font-bold uppercase tracking-wide border-4 border-black transition-all ${sortBy === sort.value
-                                ? "bg-[#0ea5a4] text-black"
-                                : "bg-white text-black hover:bg-gray-100"
+                    {[{ value: "price-low", label: "Price ↑" }, { value: "price-high", label: "Price ↓" }].map(
+                        (sort) => (
+                            <Button
+                                key={sort.value}
+                                onClick={() => setSortBy(sort.value)}
+                                className={`px-4 py-2 font-bold uppercase tracking-wide border-4 border-black transition-all ${
+                                    sortBy === sort.value
+                                        ? "bg-[#0ea5a4] text-black"
+                                        : "bg-white text-black hover:bg-gray-100"
                                 }`}
-                        >
-                            {sort.label}
-                        </Button>
-                    ))}
+                            >
+                                {sort.label}
+                            </Button>
+                        )
+                    )}
                 </div>
             </div>
 
@@ -195,10 +200,7 @@ export const Market: React.FC = () => {
                             className="aspect-square border-4 border-black mb-4 flex flex-col items-center justify-center text-center relative"
                             style={{ backgroundColor: nft.color }}
                         >
-                            <div className="font-mono text-sm font-black text-black">
-                                {nft.id}
-                            </div>
-
+                            <div className="font-mono text-sm font-black text-black">{nft.id}</div>
                             <div
                                 className="absolute top-2 right-2 px-2 py-1 border-2 border-black text-xs font-black uppercase text-white"
                                 style={{ backgroundColor: rarityColors[nft.rarity] }}
@@ -231,8 +233,8 @@ export const Market: React.FC = () => {
                                                 nft.power > 70
                                                     ? "#0ea5a4"
                                                     : nft.power > 40
-                                                        ? "#fbbf24"
-                                                        : "#ec4899",
+                                                    ? "#fbbf24"
+                                                    : "#ec4899",
                                         }}
                                     />
                                 </div>
@@ -240,25 +242,32 @@ export const Market: React.FC = () => {
                         </div>
 
                         <div className="border-4 border-black bg-black text-white p-3 mb-4 text-center">
-                            <div className="text-xs font-bold uppercase opacity-75">
-                                Current Price
-                            </div>
+                            <div className="text-xs font-bold uppercase opacity-75">Current Price</div>
                             <div className="text-2xl font-black">{nft.price} ETH</div>
                             <div className="text-xs font-bold opacity-75">
                                 ${(nft.price * 3200).toFixed(0)} USD
                             </div>
                         </div>
 
-                        <Button
-                            className="border-4 border-black font-extrabold bg-[#0ea5a4] hover:bg-[#0ea5a4]/80"
-                            onClick={() => handleBuy(nft)}
-                        >
-                            BUY NOW
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                className="flex-1 border-4 border-black font-extrabold bg-[#8b5cf6] hover:bg-[#8b5cf6]/80"
+                                onClick={() => handleViewNft(nft)}
+                            >
+                                VIEW NFT
+                            </Button>
+                            <Button
+                                className="flex-1 border-4 border-black font-extrabold bg-[#0ea5a4] hover:bg-[#0ea5a4]/80"
+                                onClick={() => handleBuy(nft)}
+                            >
+                                BUY NOW
+                            </Button>
+                        </div>
                     </Card>
                 ))}
             </div>
 
+            {/* Buy dialog */}
             <Dialog open={showBuyDialog} onOpenChange={setShowBuyDialog}>
                 <DialogContent className="border-4 border-black">
                     <DialogHeader>
@@ -274,7 +283,8 @@ export const Market: React.FC = () => {
                                     <div className="font-mono text-lg font-black text-black">
                                         {selectedNft.id}
                                     </div>
-                                    <div className="absolute top-2 right-2 px-2 py-1 border-2 border-black text-xs font-black uppercase text-white"
+                                    <div
+                                        className="absolute top-2 right-2 px-2 py-1 border-2 border-black text-xs font-black uppercase text-white"
                                         style={{ backgroundColor: rarityColors[selectedNft.rarity] }}
                                     >
                                         {selectedNft.rarity}
@@ -305,8 +315,8 @@ export const Market: React.FC = () => {
                                                     selectedNft.power > 70
                                                         ? "#0ea5a4"
                                                         : selectedNft.power > 40
-                                                            ? "#fbbf24"
-                                                            : "#ec4899",
+                                                        ? "#fbbf24"
+                                                        : "#ec4899",
                                             }}
                                         />
                                     </div>
@@ -337,6 +347,30 @@ export const Market: React.FC = () => {
                             Confirm Purchase
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Comet NFT View */}
+            <Dialog open={showCometView} onOpenChange={setShowCometView}>
+                <DialogContent className="border-4 border-black max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black">Comet NFT</DialogTitle>
+                    </DialogHeader>
+                    {selectedNft && (
+                        <CometCard>
+                            <div
+                                className="flex flex-col items-center justify-center p-6 rounded-xl bg-[#1F2121] text-white"
+                                style={{ backgroundColor: selectedNft.color }}
+                            >
+                                <div className="font-mono text-3xl font-black mb-4">{selectedNft.id}</div>
+                                <div className="text-lg font-bold">{selectedNft.location}</div>
+                                <div className="mt-4 font-bold">Power: {selectedNft.power}%</div>
+                                <div className="mt-2 px-3 py-1 border-2 border-white rounded font-bold">
+                                    {selectedNft.rarity}
+                                </div>
+                            </div>
+                        </CometCard>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>
