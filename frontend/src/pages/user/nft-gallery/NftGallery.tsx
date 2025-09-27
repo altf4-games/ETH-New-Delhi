@@ -1,7 +1,56 @@
+import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 
 export function NFTGallery() {
+  const [selectedNft, setSelectedNft] = useState<typeof nfts[0] | null>(null);
+  const [showSellDialog, setShowSellDialog] = useState(false);
+  const [sellPrice, setSellPrice] = useState("");
+  const [priceError, setPriceError] = useState("");
+  const navigate = useNavigate();
+
+  const handleSell = (nft: typeof nfts[0]) => {
+    setSelectedNft(nft);
+    setSellPrice("");
+    setPriceError("");
+    setShowSellDialog(true);
+  };
+
+  const validatePrice = (price: string) => {
+    const numberPrice = parseFloat(price);
+    if (isNaN(numberPrice) || numberPrice <= 0) {
+      setPriceError("Please enter a valid price greater than 0");
+      return false;
+    }
+    setPriceError("");
+    return true;
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+      setSellPrice(value);
+      if (value !== "") validatePrice(value);
+    }
+  };
+
+  const confirmSell = () => {
+    if (!selectedNft || !validatePrice(sellPrice)) return;
+
+    console.log('Selling NFT:', selectedNft.id, 'for', sellPrice, 'ETH');
+    setShowSellDialog(false);
+    setSelectedNft(null);
+    setSellPrice("");
+  };
+
   const nfts = [
     {
       id: "ZONE_001",
@@ -54,8 +103,8 @@ export function NFTGallery() {
 
         <Card className="border-4 border-black text-center p-6 bg-[#ec4899]/10">
           <CardContent>
-            <div className="text-3xl font-black mb-2">1.2</div>
-            <div className="font-bold uppercase">ETH Value</div>
+            <div className="text-3xl font-black mb-2">73</div>
+            <div className="font-bold uppercase">Average % mined</div>
           </CardContent>
         </Card>
       </div>
@@ -71,12 +120,14 @@ export function NFTGallery() {
             Capture more zones to increase your territory and earn more rewards!
           </CardContent>
           <CardFooter className="flex justify-center gap-4">
-            <Button className="border-4 border-black shadow-md font-extrabold">
-              EXPLORE ZONES
-            </Button>
-            <Button className="border-4 border-black bg-[#ec4899] text-white shadow-md font-extrabold">
-              START NEW RUN
-            </Button>
+            <div className="space-y-2 space-x-2">
+              <Button className="border-4 border-black shadow-md font-extrabold" onClick={() => navigate("/user/home")}>
+                EXPLORE ZONES
+              </Button>
+              <Button className="border-4 border-black bg-[#ec4899] text-white shadow-md font-extrabold" onClick={() => navigate("/user/home")}>
+                START NEW RUN
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       </div>
@@ -120,8 +171,8 @@ export function NFTGallery() {
                         nft.power > 70
                           ? "#0ea5a4"
                           : nft.power > 40
-                          ? "#fbbf24"
-                          : "#ec4899",
+                            ? "#fbbf24"
+                            : "#ec4899",
                     }}
                   />
                 </div>
@@ -130,17 +181,93 @@ export function NFTGallery() {
 
             <CardFooter className="flex gap-3 mt-6">
               <Button
-                className="flex-1 border-4 border-black font-extrabold bg-white"
+                className="flex-1 border-4 border-black bg-[#d20d0d] text-white font-extrabold"
+                onClick={() => handleSell(nft)}
               >
-                TRANSFER
-              </Button>
-              <Button className="flex-1 border-4 border-black bg-[#d20d0d] text-white font-extrabold">
                 SELL
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
+
+      <Dialog open={showSellDialog} onOpenChange={setShowSellDialog}>
+        <DialogContent className="border-4 border-black">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black">Confirm Sale</DialogTitle>
+          </DialogHeader>
+          {selectedNft && (
+            <div className="py-4">
+              <div className="mb-6">
+                <div className="aspect-square w-32 mx-auto mb-4 flex flex-col items-center justify-center text-center relative border-4 border-black" style={{ backgroundColor: selectedNft.color }}>
+                  <div className="font-mono text-lg font-black text-black">
+                    {selectedNft.id}
+                  </div>
+                  <div className="absolute bottom-2 left-2 right-2">
+                    <div className="text-xs font-bold text-black uppercase">
+                      {selectedNft.location}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 border-4 border-black p-4 bg-white/50">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold">Zone ID:</span>
+                  <span className="font-mono font-black">{selectedNft.id}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-bold">Location:</span>
+                  <span className="font-black">{selectedNft.location}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-bold">Captured:</span>
+                  <span className="font-black">{selectedNft.dateCaptured}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-bold">Power:</span>
+                  <span className="font-black">{selectedNft.power}%</span>
+                </div>
+                <div className="flex items-center gap-4 border-t-2 border-black pt-3">
+                  <span className="font-bold text-lg whitespace-nowrap">Sale Price:</span>
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={sellPrice}
+                      onChange={handlePriceChange}
+                      placeholder="0.00"
+                      className="w-full px-3 py-2 border-4 border-black font-black text-lg focus:outline-none focus:ring-2 focus:ring-[#0ea5a4]"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 font-black text-lg">
+                      ETH
+                    </span>
+                  </div>
+                </div>
+                {priceError && (
+                  <div className="text-[#d20d0d] font-bold mt-2 text-sm">
+                    {priceError}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex gap-4">
+            <Button
+              className="flex-1 border-4 border-black bg-gray-200"
+              onClick={() => setShowSellDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 border-4 border-black bg-[#d20d0d] text-white font-extrabold"
+              onClick={confirmSell}
+              disabled={!sellPrice || !!priceError}
+            >
+              Sell Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -6,10 +6,33 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog";
 
 export const Market: React.FC = () => {
     const [sortBy, setSortBy] = useState("price-low");
     const [filterBy, setFilterBy] = useState("all");
+    const [selectedNft, setSelectedNft] = useState<typeof marketNFTs[0] | null>(null);
+    const [showBuyDialog, setShowBuyDialog] = useState(false);
+
+
+    const handleBuy = (nft: typeof marketNFTs[0]) => {
+        setSelectedNft(nft);
+        setShowBuyDialog(true);
+    };
+
+    const confirmBuy = () => {
+        if (selectedNft) {
+            console.log('Buying NFT:', selectedNft.id, 'for', selectedNft.price, 'ETH');
+        }
+        setShowBuyDialog(false);
+        setSelectedNft(null);
+    };
 
     const marketNFTs = [
         {
@@ -98,17 +121,16 @@ export const Market: React.FC = () => {
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-8">
-            {/* Page Header */}
-            <div className="mb-8">
-                <h1 className="text-5xl font-black uppercase mb-4">
+            <div className="mb-8 ">
+                <h1 className="text-4xl sm:text-4xl md:text-5xl font-black uppercase mb-4 break-words">
                     NFT <span className="text-[#ec4899]">MARKETPLACE</span>
                 </h1>
-                <p className="text-xl font-bold text-gray-700">
+                <p className="text-base sm:text-lg md:text-xl font-bold text-gray-700">
                     Buy and sell zone NFTs from runners worldwide
                 </p>
             </div>
 
-            {/* Market Stats */}
+
             <div className="grid md:grid-cols-2 gap-6 mb-8">
                 <Card className="border-4 border-black text-center p-6 bg-[#0ea5a4]/10">
                     <CardHeader>
@@ -129,7 +151,6 @@ export const Market: React.FC = () => {
                 </Card>
             </div>
 
-            {/* Filters and Sorting */}
             <div className="flex flex-wrap gap-4 mb-8">
                 <div className="flex flex-wrap gap-2">
                     <span className="font-bold text-lg">FILTER:</span>
@@ -138,8 +159,8 @@ export const Market: React.FC = () => {
                             key={filter}
                             onClick={() => setFilterBy(filter)}
                             className={`px-4 py-2 font-bold uppercase tracking-wide border-4 border-black transition-all ${filterBy === filter
-                                    ? "bg-[#fbbf24] text-black"
-                                    : "bg-white text-black hover:bg-gray-100"
+                                ? "bg-[#fbbf24] text-black"
+                                : "bg-white text-black hover:bg-gray-100"
                                 }`}
                         >
                             {filter}
@@ -154,8 +175,8 @@ export const Market: React.FC = () => {
                             key={sort.value}
                             onClick={() => setSortBy(sort.value)}
                             className={`px-4 py-2 font-bold uppercase tracking-wide border-4 border-black transition-all ${sortBy === sort.value
-                                    ? "bg-[#0ea5a4] text-black"
-                                    : "bg-white text-black hover:bg-gray-100"
+                                ? "bg-[#0ea5a4] text-black"
+                                : "bg-white text-black hover:bg-gray-100"
                                 }`}
                         >
                             {sort.label}
@@ -164,24 +185,20 @@ export const Market: React.FC = () => {
                 </div>
             </div>
 
-            {/* NFT Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredNFTs.map((nft) => (
                     <Card
                         key={nft.id}
                         className="border-4 border-black p-4 flex flex-col justify-between"
                     >
-                        {/* NFT Visual */}
                         <div
                             className="aspect-square border-4 border-black mb-4 flex flex-col items-center justify-center text-center relative"
                             style={{ backgroundColor: nft.color }}
                         >
-                            <div className="text-3xl font-black text-black mb-2">🏃‍♂️</div>
                             <div className="font-mono text-sm font-black text-black">
                                 {nft.id}
                             </div>
 
-                            {/* Rarity Badge */}
                             <div
                                 className="absolute top-2 right-2 px-2 py-1 border-2 border-black text-xs font-black uppercase text-white"
                                 style={{ backgroundColor: rarityColors[nft.rarity] }}
@@ -190,8 +207,7 @@ export const Market: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* NFT Details */}
-                        <div className="space-y-2 mb-4">
+                        <div className="space-y-3 mb-4">
                             <div className="flex justify-between items-center">
                                 <span className="font-bold text-sm">Seller:</span>
                                 <span className="font-mono text-xs font-black">
@@ -201,13 +217,28 @@ export const Market: React.FC = () => {
                                 </span>
                             </div>
 
-                            <div className="flex justify-between items-center">
-                                <span className="font-bold text-sm">Power:</span>
-                                <span className="font-black text-sm">{nft.power}%</span>
+                            <div>
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="font-bold text-sm">Power:</span>
+                                    <span className="font-black text-sm">{nft.power}%</span>
+                                </div>
+                                <div className="w-full border-2 border-black bg-gray-200 h-3">
+                                    <div
+                                        className="h-full transition-all duration-300"
+                                        style={{
+                                            width: `${nft.power}%`,
+                                            backgroundColor:
+                                                nft.power > 70
+                                                    ? "#0ea5a4"
+                                                    : nft.power > 40
+                                                        ? "#fbbf24"
+                                                        : "#ec4899",
+                                        }}
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        {/* Price + Buy */}
                         <div className="border-4 border-black bg-black text-white p-3 mb-4 text-center">
                             <div className="text-xs font-bold uppercase opacity-75">
                                 Current Price
@@ -218,12 +249,96 @@ export const Market: React.FC = () => {
                             </div>
                         </div>
 
-                        <Button className="border-4 border-black font-extrabold bg-[#0ea5a4] hover:bg-[#0ea5a4]/80">
+                        <Button
+                            className="border-4 border-black font-extrabold bg-[#0ea5a4] hover:bg-[#0ea5a4]/80"
+                            onClick={() => handleBuy(nft)}
+                        >
                             BUY NOW
                         </Button>
                     </Card>
                 ))}
             </div>
+
+            <Dialog open={showBuyDialog} onOpenChange={setShowBuyDialog}>
+                <DialogContent className="border-4 border-black">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black">Confirm Purchase</DialogTitle>
+                    </DialogHeader>
+                    {selectedNft && (
+                        <div className="py-4">
+                            <div className="mb-6">
+                                <div
+                                    className="aspect-square w-32 mx-auto mb-4 flex flex-col items-center justify-center text-center relative border-4 border-black"
+                                    style={{ backgroundColor: selectedNft.color }}
+                                >
+                                    <div className="font-mono text-lg font-black text-black">
+                                        {selectedNft.id}
+                                    </div>
+                                    <div className="absolute top-2 right-2 px-2 py-1 border-2 border-black text-xs font-black uppercase text-white"
+                                        style={{ backgroundColor: rarityColors[selectedNft.rarity] }}
+                                    >
+                                        {selectedNft.rarity}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 border-4 border-black p-4 bg-white/50">
+                                <div className="flex justify-between items-center">
+                                    <span className="font-bold">Seller:</span>
+                                    <span className="font-mono font-black">{selectedNft.seller}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="font-bold">Location:</span>
+                                    <span className="font-black">{selectedNft.location}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="font-bold">Power:</span>
+                                    <span className="font-black">{selectedNft.power}%</span>
+                                </div>
+                                <div>
+                                    <div className="w-full border-2 border-black bg-gray-200 h-3">
+                                        <div
+                                            className="h-full transition-all duration-300"
+                                            style={{
+                                                width: `${selectedNft.power}%`,
+                                                backgroundColor:
+                                                    selectedNft.power > 70
+                                                        ? "#0ea5a4"
+                                                        : selectedNft.power > 40
+                                                            ? "#fbbf24"
+                                                            : "#ec4899",
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center border-t-2 border-black pt-3">
+                                    <span className="font-bold text-lg">Price:</span>
+                                    <div className="text-right">
+                                        <div className="font-black text-lg">{selectedNft.price} ETH</div>
+                                        <div className="text-sm text-gray-600">
+                                            ${(selectedNft.price * 3200).toFixed(0)} USD
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter className="flex gap-4">
+                        <Button
+                            className="flex-1 border-4 border-black bg-gray-200"
+                            onClick={() => setShowBuyDialog(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="flex-1 border-4 border-black bg-[#0ea5a4] text-white font-extrabold"
+                            onClick={confirmBuy}
+                        >
+                            Confirm Purchase
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

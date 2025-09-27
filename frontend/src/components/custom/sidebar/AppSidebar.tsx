@@ -49,7 +49,7 @@ export const AppSidebar = () => {
       collapsible="icon"
       className="bg-white dark:bg-zinc-900 text-black dark:text-white border-r-4 border-black"
     >
-      <SidebarHeader className="p-[10px] flex justify-center">
+      <SidebarHeader className="p-[14px] flex justify-center">
         <h1 className="text-2xl font-extrabold uppercase tracking-tighter">
           <span className="hidden group-data-[state=expanded]:block">FitConquer</span>
           <span className="block group-data-[state=collapsed]:block item group-data-[state=expanded]:hidden">
