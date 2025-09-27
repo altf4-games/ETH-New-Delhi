@@ -65,12 +65,26 @@ export function HeroPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
                 >
-                    <Button
-                        className="bg-gray-800 text-white font-extrabold text-lg px-8 py-4 border-4 border-black shadow-[6px_6px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
-                        onClick={handleConnectWallet}
-                    >
-                        🦊 CONNECT WALLET (METAMASK)
-                    </Button>
+                    {auth.isWalletConnected && auth.walletAddress ? (
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="flex items-center gap-3 bg-green-100 text-green-800 font-extrabold text-lg px-8 py-4 border-4 border-black shadow-[6px_6px_0px_#000]">
+                                🦊 <span className="font-mono">{auth.formatWalletAddress(auth.walletAddress)}</span>
+                            </div>
+                            <Button
+                                className="bg-gray-600 text-white font-extrabold text-base px-6 py-3 border-4 border-black shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+                                onClick={() => navigate("/user/home")}
+                            >
+                                Go to Dashboard
+                            </Button>
+                        </div>
+                    ) : (
+                        <Button
+                            className="bg-gray-800 text-white font-extrabold text-lg px-8 py-4 border-4 border-black shadow-[6px_6px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+                            onClick={handleConnectWallet}
+                        >
+                            🦊 CONNECT WALLET (METAMASK)
+                        </Button>
+                    )}
 
                     <Button
                         className={`${auth.isStravaConnected
