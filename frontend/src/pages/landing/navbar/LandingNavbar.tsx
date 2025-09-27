@@ -5,7 +5,7 @@ import { useWallet } from "@/hooks/useWallet";
 
 export default function LandingNavbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const { connectWallet } = useWallet();
+  const { connectWallet, isConnected, address, formatAddress, disconnectWallet } = useWallet();
 
   const scrollToSection = (id: string) => {
     const section = document.getElementById(id);
@@ -48,12 +48,26 @@ export default function LandingNavbar() {
           </Button>
         </div>
 
-        <Button 
-          className="hidden md:flex items-center gap-2 bg-[#ec4899] text-white border-4 border-black font-bold rounded-md hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
-          onClick={connectWallet}
-        >
-          <Wallet className="w-4 h-4" /> Connect Wallet
-        </Button>
+        {isConnected && address ? (
+          <div className="hidden md:flex items-center gap-2 bg-green-100 text-green-800 border-4 border-black font-bold rounded-md px-4 py-2">
+            <Wallet className="w-4 h-4" />
+            <span className="font-mono text-sm">{formatAddress(address)}</span>
+            <button
+              onClick={disconnectWallet}
+              className="ml-2 text-red-600 hover:text-red-800 text-xs"
+              title="Disconnect wallet"
+            >
+              ×
+            </button>
+          </div>
+        ) : (
+          <Button 
+            className="hidden md:flex items-center gap-2 bg-[#ec4899] text-white border-4 border-black font-bold rounded-md hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+            onClick={connectWallet}
+          >
+            <Wallet className="w-4 h-4" /> Connect Wallet
+          </Button>
+        )}
 
         <button
           className="md:hidden p-2 border-2 border-black rounded-md"
@@ -83,12 +97,28 @@ export default function LandingNavbar() {
           >
             <CircleHelp className="w-4 h-4" /> FAQ
           </Button>
-          <Button 
-            className="w-full justify-start gap-2 bg-[#ec4899] text-white border-4 border-black font-bold rounded-md"
-            onClick={connectWallet}
-          >
-            <Wallet className="w-4 h-4" /> Connect Wallet
-          </Button>
+          {isConnected && address ? (
+            <div className="w-full flex items-center justify-between gap-2 bg-green-100 text-green-800 border-4 border-black font-bold rounded-md px-4 py-2">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-4 h-4" />
+                <span className="font-mono text-sm">{formatAddress(address)}</span>
+              </div>
+              <button
+                onClick={disconnectWallet}
+                className="text-red-600 hover:text-red-800 text-xs"
+                title="Disconnect wallet"
+              >
+                ×
+              </button>
+            </div>
+          ) : (
+            <Button 
+              className="w-full justify-start gap-2 bg-[#ec4899] text-white border-4 border-black font-bold rounded-md"
+              onClick={connectWallet}
+            >
+              <Wallet className="w-4 h-4" /> Connect Wallet
+            </Button>
+          )}
         </div>
       )}
     </nav>

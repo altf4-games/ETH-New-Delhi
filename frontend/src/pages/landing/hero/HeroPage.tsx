@@ -15,7 +15,7 @@ export function HeroPage() {
         setIsConnecting(prev => ({ ...prev, wallet: true }));
         const success = await auth.connectWallet();
         setIsConnecting(prev => ({ ...prev, wallet: false }));
-        
+
         if (success && auth.isStravaConnected) {
             navigate("/user/home");
         }
@@ -25,7 +25,7 @@ export function HeroPage() {
         setIsConnecting(prev => ({ ...prev, strava: true }));
         const success = await auth.connectStrava();
         setIsConnecting(prev => ({ ...prev, strava: false }));
-        
+
         if (success && auth.isWalletConnected) {
             navigate("/user/home");
         }
@@ -66,37 +66,17 @@ export function HeroPage() {
                     transition={{ duration: 0.8, ease: "easeOut" }}
                 >
                     <Button
-                        className={`${
-                            auth.isWalletConnected 
-                                ? 'bg-green-600 text-white' 
-                                : 'bg-gray-800 text-white'
-                        } font-extrabold text-lg px-8 py-4 border-4 border-black shadow-[6px_6px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none disabled:opacity-70 disabled:cursor-not-allowed`}
+                        className="bg-gray-800 text-white font-extrabold text-lg px-8 py-4 border-4 border-black shadow-[6px_6px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
                         onClick={handleConnectWallet}
-                        disabled={auth.isWalletConnected || isConnecting.wallet}
                     >
-                        {isConnecting.wallet ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                CONNECTING...
-                            </>
-                        ) : auth.isWalletConnected ? (
-                            <>
-                                <Check className="mr-2 h-4 w-4" />
-                                WALLET CONNECTED
-                            </>
-                        ) : (
-                            <>
-                                🦊 CONNECT WALLET (METAMASK)
-                            </>
-                        )}
+                        🦊 CONNECT WALLET (METAMASK)
                     </Button>
 
                     <Button
-                        className={`${
-                            auth.isStravaConnected 
-                                ? 'bg-green-600 text-white' 
+                        className={`${auth.isStravaConnected
+                                ? 'bg-green-600 text-white'
                                 : 'bg-[#ec4899] text-white'
-                        } font-extrabold text-lg px-8 py-4 border-4 border-black shadow-[6px_6px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none disabled:opacity-70 disabled:cursor-not-allowed`}
+                            } font-extrabold text-lg px-8 py-4 border-4 border-black shadow-[6px_6px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none disabled:opacity-70 disabled:cursor-not-allowed`}
                         onClick={handleConnectStrava}
                         disabled={auth.isStravaConnected || isConnecting.strava}
                     >
@@ -142,7 +122,7 @@ export function HeroPage() {
                         transition={{ duration: 0.5 }}
                     >
                         <p className="text-yellow-800 font-bold">
-                            {auth.isWalletConnected && !auth.isStravaConnected 
+                            {auth.isWalletConnected && !auth.isStravaConnected
                                 ? "🏃‍♂️ Connect Strava to start capturing zones!"
                                 : "🦊 Connect your wallet to mint zone NFTs!"
                             }
