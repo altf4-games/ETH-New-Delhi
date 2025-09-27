@@ -83,14 +83,20 @@ router.get('/strava/callback', async (req, res) => {
         <div class="success-box">
           <h2>🎉 Strava Connected!</h2>
           <p>Welcome, ${athleteData.athlete.name}!</p>
-          <p>You can close this tab and return to the test page.</p>
+          <p>You can close this tab and return to the main page.</p>
           <button onclick="window.close()">Close Tab</button>
         </div>
         <script>
           // Send data back to parent window
-          if (window.opener) {
-            window.opener.postMessage(${JSON.stringify(athleteData)}, '*');
-            setTimeout(() => window.close(), 2000);
+          try {
+            if (window.opener) {
+              window.opener.postMessage(${JSON.stringify(athleteData)}, '*');
+              setTimeout(() => window.close(), 2000);
+            } else if (window.parent) {
+              window.parent.postMessage(${JSON.stringify(athleteData)}, '*');
+            }
+          } catch (error) {
+            console.log('Could not communicate with parent window:', error);
           }
         </script>
       </body>
