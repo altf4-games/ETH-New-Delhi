@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,29 +10,104 @@ import {
 import { useWallet } from "@/hooks/useWallet";
 import { useAuth } from "@/hooks/useAuth"; // <-- Strava hook
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPersonRunning } from "@fortawesome/free-solid-svg-icons";
+import { faPersonRunning, faStop, faClock } from "@fortawesome/free-solid-svg-icons";
 import EnhancedTomTomMap from "@/components/custom/map/EnhancedTomTomMap";
 import type { ZoneMarker } from "@/components/custom/map/EnhancedTomTomMap";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+// Timer component to prevent full page re-renders
+const RunTimer = ({ onTick }: { onTick: React.Dispatch<React.SetStateAction<number>> }) => {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      onTick(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [onTick]);
+
+  return null;
+};
+
+// Memoized map container to prevent re-renders
+const MapContainer = React.memo(() => {
+  const handleZoneClick = React.useCallback((zone: ZoneMarker) => {
+    console.log('Zone clicked:', zone);
+    if (zone.type === 'available') {
+      alert(`Start running to capture ${zone.title}! You'll earn ${zone.points} points.`);
+    } else if (zone.type === 'owned') {
+      alert(`You own ${zone.title}! Points earned: ${zone.points}`);
+    } else {
+      alert(`${zone.title} is owned by another runner.`);
+    }
+  }, []);
+
+  return (
+    <div className="h-full relative">
+      <EnhancedTomTomMap 
+        className="w-full h-full"
+        center={[77.2090, 28.6139]}
+        zoom={12}
+        onZoneClick={handleZoneClick}
+      />
+
+      <div className="absolute bottom-4 right-4 bg-white border-4 border-black p-3 text-left z-10">
+        <h4 className="font-bold uppercase text-sm mb-2">Legend</h4>
+        <div className="space-y-1 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-[#0ea5a4] border-2 border-black"></div>
+            <span className="font-bold">Your Zones</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-[#10b981] border-2 border-black"></div>
+            <span className="font-bold">Available</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-[#ec4899] border-2 border-black"></div>
+            <span className="font-bold">Others</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}, () => true); // Always return true to prevent any re-renders
+
+MapContainer.displayName = 'MapContainer';
 
 export default function Home() {
   const { address, formatAddress, isConnected, isLoading } = useWallet();
   const auth = useAuth();
+  const [isRunning, setIsRunning] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [timer, setTimer] = useState(0);
 
-  // Handle zone click
-  const handleZoneClick = (zone: ZoneMarker) => {
-    console.log('Zone clicked:', zone);
-    // Add your zone interaction logic here
-    if (zone.type === 'available') {
-      // Show modal or navigate to start run
-      alert(`Start running to capture ${zone.title}! You'll earn ${zone.points} points.`);
-    } else if (zone.type === 'owned') {
-      // Show zone details or management options
-      alert(`You own ${zone.title}! Points earned: ${zone.points}`);
-    } else {
-      // Show zone is owned by others
-      alert(`${zone.title} is owned by another runner.`);
-    }
+  const startRun = () => {
+    setIsRunning(true);
+    setShowConfirmDialog(false);
   };
+
+  const [lastRunTime, setLastRunTime] = useState("42:15");
+
+  const endRun = () => {
+    setIsRunning(false);
+    // Save the current time as last run time
+    setLastRunTime(formatTime(timer));
+    // Reset the timer for next run
+    setTimer(0);
+  };
+
+  const formatTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Map click handling is now in the MapContainer component
 
   const displayAddress =
     isConnected && address ? formatAddress(address) : "0x1234...5678";
@@ -115,13 +191,36 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Running Timer */}
+              {isRunning && (
+                <div className="border-4 border-black bg-black p-3 text-center text-orange-400">
+                  <div className="text-3xl font-black font-mono">{formatTime(timer)}</div>
+                  <div className="text-sm font-bold uppercase mt-2">Current Run</div>
+                </div>
+              )}
+
               {/* CTA Button */}
-              <Button className="w-full border-4 border-black bg-[#ec4899] text-white py-4 flex items-center justify-center gap-3 hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
-                <FontAwesomeIcon className="text-2xl" icon={faPersonRunning} />
-                <span className="text-lg font-extrabold uppercase">
-                  Start New Run
-                </span>
-              </Button>
+              {isRunning ? (
+                <Button 
+                  className="w-full border-4 border-black bg-red-500 text-white py-4 flex items-center justify-center gap-3 hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                  onClick={endRun}
+                >
+                  <FontAwesomeIcon className="text-2xl" icon={faStop} />
+                  <span className="text-lg font-extrabold uppercase">
+                    End Run
+                  </span>
+                </Button>
+              ) : (
+                <Button 
+                  className="w-full border-4 border-black bg-[#ec4899] text-white py-4 flex items-center justify-center gap-3 hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                  onClick={() => setShowConfirmDialog(true)}
+                >
+                  <FontAwesomeIcon className="text-2xl" icon={faPersonRunning} />
+                  <span className="text-lg font-extrabold uppercase">
+                    Start New Run
+                  </span>
+                </Button>
+              )}
             </CardContent>
           </Card>
 
@@ -129,7 +228,7 @@ export default function Home() {
           <Card className="border-4 border-black bg-[#fef3c7] flex-1">
             <CardHeader>
               <CardTitle className="text-xl font-black uppercase">
-                Latest Run
+                {isRunning ? "Current Run" : "Latest Run"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -147,18 +246,20 @@ export default function Home() {
               </div>
               <div className="flex justify-between">
                 <span className="font-bold">Time:</span>
-                <span className="font-black">42:15</span>
+                <span className="font-black">{isRunning ? formatTime(timer) : lastRunTime}</span>
               </div>
             </CardContent>
             <CardFooter>
               <Button
                 variant="default"
                 className="w-full font-extrabold"
-                disabled={!isConnected}
+                disabled={!isConnected || isRunning}
               >
-                {isConnected
-                  ? "Capture Zone: Mint NFT"
-                  : "Connect Wallet to Mint"}
+                {!isConnected
+                  ? "Connect Wallet to Mint"
+                  : isRunning
+                  ? "Finish Run to Mint"
+                  : "Capture Zone: Mint NFT"}
               </Button>
             </CardFooter>
           </Card>
@@ -173,32 +274,7 @@ export default function Home() {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1">
-              <div className="h-full relative">
-                <EnhancedTomTomMap 
-                  className="w-full h-full"
-                  center={[77.2090, 28.6139]} // Delhi coordinates - you can make this dynamic
-                  zoom={12}
-                  onZoneClick={handleZoneClick}
-                />
-
-                <div className="absolute bottom-4 right-4 bg-white border-4 border-black p-3 text-left z-10">
-                  <h4 className="font-bold uppercase text-sm mb-2">Legend</h4>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-[#0ea5a4] border-2 border-black"></div>
-                      <span className="font-bold">Your Zones</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-[#10b981] border-2 border-black"></div>
-                      <span className="font-bold">Available</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-[#ec4899] border-2 border-black"></div>
-                      <span className="font-bold">Others</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <MapContainer />
             </CardContent>
             <CardFooter className="flex gap-4">
               <Button className="font-extrabold">Explore All Zones</Button>
@@ -209,6 +285,35 @@ export default function Home() {
           </Card>
         </div>
       </div>
+
+      {/* Timer Component */}
+      {isRunning && <RunTimer onTick={setTimer} />}
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="border-4 border-black">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black">Start New Run</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-lg font-bold text-center">Are you sure you want to start your run?</p>
+          </div>
+          <DialogFooter className="flex gap-4">
+            <Button
+              className="flex-1 border-4 border-black bg-gray-200"
+              onClick={() => setShowConfirmDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 border-4 border-black bg-[#ec4899] text-white"
+              onClick={startRun}
+            >
+              Start Run
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
