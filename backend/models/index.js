@@ -1,50 +1,56 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
   walletAddress: {
     type: String,
     required: true,
     unique: true,
-    lowercase: true
+    lowercase: true,
   },
   stravaId: {
     type: String,
-    sparse: true
+    sparse: true,
   },
   name: String,
   totalPoints: {
     type: Number,
-    default: 0
+    default: 0,
   },
   totalActivities: {
     type: Number,
-    default: 0
+    default: 0,
   },
   zonesOwned: {
     type: Number,
-    default: 0
+    default: 0,
+  },
+  currentRunningActivity: {
+    type: Object,
+    default: null,
   },
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 const activitySchema = new mongoose.Schema({
-  stravaId: { type: Number, required: true, unique: true },
+  stravaId: { type: String, required: true, unique: true }, // Changed from Number to String to support manual IDs
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: "User",
+    required: true,
   },
   name: { type: String, required: true },
   type: { type: String, required: true }, // Run, Ride, Hike, etc.
   distance: { type: Number, default: 0 }, // in meters
-  movingTime: { type: Number, default: 0 }, // in seconds
+  duration: { type: Number, default: 0 }, // in seconds (renamed from movingTime for consistency)
+  movingTime: { type: Number, default: 0 }, // in seconds (kept for Strava compatibility)
   elapsedTime: { type: Number, default: 0 }, // in seconds
   totalElevationGain: { type: Number, default: 0 }, // in meters
   startDate: { type: Date, required: true },
-  startDateLocal: { type: Date, required: true },
+  startDateLocal: { type: Date },
+  endDate: { type: Date }, // Added for manual activities
   startLatLng: [Number], // [lat, lng]
   endLatLng: [Number], // [lat, lng]
   polyline: String, // Encoded polyline from Strava
@@ -58,45 +64,46 @@ const activitySchema = new mongoose.Schema({
   kilojoules: Number, // Total energy
   trainer: { type: Boolean, default: false },
   commute: { type: Boolean, default: false },
+  manual: { type: Boolean, default: false }, // Flag for manually tracked activities
   flagged: {
     type: Boolean,
-    default: false
+    default: false,
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   updatedAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 const zoneSchema = new mongoose.Schema({
   h3Index: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: "User",
   },
   captureScore: {
     type: Number,
-    default: 0
+    default: 0,
   },
   capturedAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   tokenId: Number,
   totalCaptures: {
     type: Number,
-    default: 1
-  }
+    default: 1,
+  },
 });
 
-export const User = mongoose.model('User', userSchema);
-export const Activity = mongoose.model('Activity', activitySchema);
-export const Zone = mongoose.model('Zone', zoneSchema);
+export const User = mongoose.model("User", userSchema);
+export const Activity = mongoose.model("Activity", activitySchema);
+export const Zone = mongoose.model("Zone", zoneSchema);

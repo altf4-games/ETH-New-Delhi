@@ -169,4 +169,112 @@ export class StravaService {
     localStorage.removeItem('stravaExpiresAt');
     localStorage.removeItem('stravaAthlete');
   }
+
+  public static async startRun(walletAddress: string, startLocation?: { lat: number; lng: number }) {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      const response = await fetch(`${apiUrl}/api/activities/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          walletAddress,
+          startLocation 
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to start run');
+      }
+
+      return {
+        activityId: data.activityId,
+        startTime: data.startTime,
+        startLocation: data.startLocation
+      };
+    } catch (error) {
+      console.error('Error starting run:', error);
+      throw error;
+    }
+  }
+
+  public static async endRun(
+    walletAddress: string, 
+    options: {
+      endLocation?: { lat: number; lng: number };
+      totalDistance?: number;
+      totalDuration?: number;
+      routeData?: Array<{ lat: number; lng: number }>;
+    }
+  ) {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      const response = await fetch(`${apiUrl}/api/activities/end`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          walletAddress,
+          ...options
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to end run');
+      }
+
+      return {
+        activity: data.activity,
+        message: data.message
+      };
+    } catch (error) {
+      console.error('Error ending run:', error);
+      throw error;
+    }
+  }
+
+  public static async getCurrentRunStatus(walletAddress: string) {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      const response = await fetch(`${apiUrl}/api/activities/current?walletAddress=${encodeURIComponent(walletAddress)}`);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to get run status');
+      }
+
+      return {
+        isRunning: data.isRunning,
+        activity: data.activity
+      };
+    } catch (error) {
+      console.error('Error getting run status:', error);
+      throw error;
+    }
+  }
 }

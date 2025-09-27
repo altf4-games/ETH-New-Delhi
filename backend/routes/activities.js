@@ -479,4 +479,205 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+// POST /api/activities/start - Start a new running activity
+router.post("/start", async (req, res) => {
+  const { walletAddress, startLocation } = req.body;
+
+  if (!walletAddress) {
+    return res.status(400).json({
+      error: "Wallet address required",
+    });
+  }
+
+  try {
+    // Find user
+    const user = await User.findOne({
+      walletAddress: walletAddress.toLowerCase(),
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found. Please connect your Strava account first.",
+      });
+    }
+
+    // Create a temporary activity record for the running session
+    const runningActivity = {
+      userId: user._id,
+      walletAddress: walletAddress.toLowerCase(),
+      startTime: new Date(),
+      startLocation: startLocation || null,
+      status: "running",
+      distance: 0,
+      duration: 0,
+      points: [],
+    };
+
+    // Store in user's running activities (you might want to use a separate collection)
+    user.currentRunningActivity = runningActivity;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Run started successfully!",
+      activityId: `temp_${user._id}_${Date.now()}`,
+      startTime: runningActivity.startTime,
+      startLocation: runningActivity.startLocation,
+    });
+  } catch (error) {
+    console.error("Start run error:", error);
+    res.status(500).json({
+      error: "Failed to start run",
+      details: error.message,
+    });
+  }
+});
+
+// POST /api/activities/end - End the current running activity
+router.post("/end", async (req, res) => {
+  const {
+    walletAddress,
+    endLocation,
+    totalDistance,
+    totalDuration,
+    routeData,
+  } = req.body;
+
+  if (!walletAddress) {
+    return res.status(400).json({
+      error: "Wallet address required",
+    });
+  }
+
+  try {
+    // Find user
+    const user = await User.findOne({
+      walletAddress: walletAddress.toLowerCase(),
+    });
+
+    if (!user || !user.currentRunningActivity) {
+      return res.status(404).json({
+        error: "No active running session found",
+      });
+    }
+
+    const runningActivity = user.currentRunningActivity;
+    const endTime = new Date();
+    const duration = Math.floor(
+      (endTime - new Date(runningActivity.startTime)) / 1000
+    );
+
+    // Calculate points based on the activity
+    const basePoints = Math.floor((totalDistance || 0) / 1000); // 1 point per km
+    const timePoints = Math.floor(duration / 600); // 1 point per 10 minutes
+    const totalPoints = basePoints + timePoints;
+
+    // Process route data if available (for zone captures)
+    let h3Zones = [];
+    if (routeData && routeData.length > 0) {
+      try {
+        h3Zones = getH3Path(routeData).map((zone) => zone.h3Index);
+      } catch (error) {
+        console.warn("Could not process route data:", error.message);
+      }
+    }
+
+    // Create the completed activity record
+    const completedActivity = new Activity({
+      stravaId: `manual_${Date.now()}`, // Manual activity ID
+      userId: user._id,
+      name: `Manual Run - ${new Date().toLocaleDateString()}`,
+      distance: totalDistance || 0,
+      duration: totalDuration || duration,
+      points: totalPoints,
+      h3Zones,
+      startDate: new Date(runningActivity.startTime),
+      endDate: endTime,
+      startLatLng: runningActivity.startLocation,
+      endLatLng: endLocation || null,
+      type: "Run",
+      manual: true, // Flag to indicate this was manually tracked
+    });
+
+    await completedActivity.save();
+
+    // Clear the current running activity
+    user.currentRunningActivity = null;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Run completed and saved!",
+      activity: {
+        id: completedActivity._id,
+        name: completedActivity.name,
+        distance: completedActivity.distance,
+        duration: completedActivity.duration,
+        points: completedActivity.points,
+        startTime: runningActivity.startTime,
+        endTime: endTime,
+        h3Zones: h3Zones.length,
+      },
+    });
+  } catch (error) {
+    console.error("End run error:", error);
+    res.status(500).json({
+      error: "Failed to end run",
+      details: error.message,
+    });
+  }
+});
+
+// GET /api/activities/current - Get current running activity status
+router.get("/current", async (req, res) => {
+  const { walletAddress } = req.query;
+
+  if (!walletAddress) {
+    return res.status(400).json({
+      error: "Wallet address required",
+    });
+  }
+
+  try {
+    // Find user
+    const user = await User.findOne({
+      walletAddress: walletAddress.toLowerCase(),
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found",
+      });
+    }
+
+    if (!user.currentRunningActivity) {
+      return res.json({
+        success: true,
+        isRunning: false,
+        activity: null,
+      });
+    }
+
+    const currentTime = new Date();
+    const startTime = new Date(user.currentRunningActivity.startTime);
+    const elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
+
+    res.json({
+      success: true,
+      isRunning: true,
+      activity: {
+        startTime: user.currentRunningActivity.startTime,
+        elapsedSeconds,
+        startLocation: user.currentRunningActivity.startLocation,
+      },
+    });
+  } catch (error) {
+    console.error("Get current activity error:", error);
+    res.status(500).json({
+      error: "Failed to get current activity status",
+      details: error.message,
+    });
+  }
+});
+
 export default router;
