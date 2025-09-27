@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 
-import { Home, Images, Trophy, LogOut } from "lucide-react";
+import { Home, Images, LogOut, DollarSign } from "lucide-react";
 
 export const AppSidebar = () => {
   const [activeTab, setActiveTab] = useState<"home" | "gallery" | "leaderboard">("home");
@@ -96,17 +96,17 @@ export const AppSidebar = () => {
 
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={() => handleNavigate("leaderboard", "/leaderboard")}
+              onClick={() => handleNavigate("leaderboard", "/user/market-place")}
               isActive={activeTab === "leaderboard"}
               className={`px-4 py-3 text-lg border-4 border-black    font-bold uppercase 
                 transition-transform hover:scale-100
                 ${
                   activeTab === "leaderboard"
-                    ? "bg-[#ec4899] text-white"
+                    ? "bg-[#0ea5a4] text-white"
                     : "bg-white dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700"
                 }`}
             >
-              <Trophy className="w-6 h-6" />
+              <DollarSign  className="w-6 h-6" />
               <span>Market Place</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
