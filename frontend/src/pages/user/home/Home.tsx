@@ -14,6 +14,7 @@ import { StravaService } from "@/services/stravaService";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPersonRunning, faStop, faRefresh } from "@fortawesome/free-solid-svg-icons";
 import EnhancedTomTomMap from "@/components/custom/map/EnhancedTomTomMap";
+import { FitnessDashboard } from "@/components/custom/fitness/FitnessDashboard";
 import type { ZoneMarker } from "@/components/custom/map/EnhancedTomTomMap";
 import {
   Dialog,
@@ -22,6 +23,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Activity, Map, Target } from "lucide-react";
 
 // Timer component to prevent full page re-renders
 const RunTimer = ({ onTick }: { onTick: React.Dispatch<React.SetStateAction<number>> }) => {
@@ -96,6 +98,7 @@ export default function Home() {
   const [activityId, setActivityId] = useState<string | null>(null);
   const [startLocation, setStartLocation] = useState<{lat: number, lng: number} | null>(null);
   const [currentRoute, setCurrentRoute] = useState<Array<{lat: number, lng: number}>>([]);
+  const [activeTab, setActiveTab] = useState<'map' | 'fitness'>('map');
 
   // Check for existing running activity on component mount
   useEffect(() => {
@@ -260,7 +263,33 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
+      {/* Tab Navigation */}
+      <div className="mb-8">
+        <div className="flex gap-4">
+          <Button
+            variant={activeTab === 'map' ? 'default' : 'neutral'}
+            onClick={() => setActiveTab('map')}
+            className="flex items-center gap-2 font-bold"
+          >
+            <Map size={16} />
+            Zone Map
+          </Button>
+          <Button
+            variant={activeTab === 'fitness' ? 'default' : 'neutral'}
+            onClick={() => setActiveTab('fitness')}
+            className="flex items-center gap-2 font-bold"
+          >
+            <Target size={16} />
+            Fitness Staking
+          </Button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'fitness' ? (
+        <FitnessDashboard />
+      ) : (
+        <div className="grid lg:grid-cols-3 gap-8">
         {/* Left Column */}
         <div className="lg:col-span-1 flex flex-col gap-8">
           {/* Runner Stats */}
@@ -551,6 +580,7 @@ export default function Home() {
           </Card>
         </div>
       </div>
+      )}
 
       {/* Timer Component */}
       {isRunning && <RunTimer onTick={setTimer} />}
