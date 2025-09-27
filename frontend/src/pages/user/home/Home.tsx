@@ -10,10 +10,28 @@ import { useWallet } from "@/hooks/useWallet";
 import { useAuth } from "@/hooks/useAuth"; // <-- Strava hook
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPersonRunning } from "@fortawesome/free-solid-svg-icons";
+import EnhancedTomTomMap from "@/components/custom/map/EnhancedTomTomMap";
+import type { ZoneMarker } from "@/components/custom/map/EnhancedTomTomMap";
 
 export default function Home() {
   const { address, formatAddress, isConnected, isLoading } = useWallet();
   const auth = useAuth();
+
+  // Handle zone click
+  const handleZoneClick = (zone: ZoneMarker) => {
+    console.log('Zone clicked:', zone);
+    // Add your zone interaction logic here
+    if (zone.type === 'available') {
+      // Show modal or navigate to start run
+      alert(`Start running to capture ${zone.title}! You'll earn ${zone.points} points.`);
+    } else if (zone.type === 'owned') {
+      // Show zone details or management options
+      alert(`You own ${zone.title}! Points earned: ${zone.points}`);
+    } else {
+      // Show zone is owned by others
+      alert(`${zone.title} is owned by another runner.`);
+    }
+  };
 
   const displayAddress =
     isConnected && address ? formatAddress(address) : "0x1234...5678";
@@ -154,10 +172,16 @@ export default function Home() {
                 Zone Map
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 min-h-[500px]">
-              <div className="h-full bg-white border-4 border-black relative">
-                {/* Legend */}
-                <div className="absolute bottom-4 right-4 bg-white border-4 border-black p-3 text-left">
+            <CardContent className="flex-1">
+              <div className="h-full relative">
+                <EnhancedTomTomMap 
+                  className="w-full h-full"
+                  center={[77.2090, 28.6139]} // Delhi coordinates - you can make this dynamic
+                  zoom={12}
+                  onZoneClick={handleZoneClick}
+                />
+
+                <div className="absolute bottom-4 right-4 bg-white border-4 border-black p-3 text-left z-10">
                   <h4 className="font-bold uppercase text-sm mb-2">Legend</h4>
                   <div className="space-y-1 text-xs">
                     <div className="flex items-center gap-2">
@@ -165,7 +189,7 @@ export default function Home() {
                       <span className="font-bold">Your Zones</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-[#d1d5db] border-2 border-black"></div>
+                      <div className="w-4 h-4 bg-[#10b981] border-2 border-black"></div>
                       <span className="font-bold">Available</span>
                     </div>
                     <div className="flex items-center gap-2">
