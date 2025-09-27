@@ -5,15 +5,20 @@ import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../ui/dialog';
 import { useFitnessRuns } from '../../../hooks/useFitnessRuns';
-import { Loader2, Timer, Target, DollarSign, CheckCircle } from 'lucide-react';
+import { useAuth } from '../../../hooks/useAuth';
+import { StravaService } from '../../../services/stravaService';
+import { Loader2, Timer, Target, DollarSign, CheckCircle, RefreshCw } from 'lucide-react';
 
 export const ActiveRun: React.FC = () => {
   const { activeRun, completeRun, loading } = useFitnessRuns();
+  const auth = useAuth();
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
   const [actualDistance, setActualDistance] = useState('');
   const [actualTime, setActualTime] = useState('');
   const [completing, setCompleting] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [loadingStravaData, setLoadingStravaData] = useState(false);
+  const [stravaDataLoaded, setStravaDataLoaded] = useState(false);
 
   // Update elapsed time every second
   useEffect(() => {
@@ -27,27 +32,114 @@ export const ActiveRun: React.FC = () => {
     return () => clearInterval(interval);
   }, [activeRun]);
 
+  // Function to load latest Strava activity data
+  const loadLatestStravaActivity = async () => {
+    if (!auth.isStravaConnected) {
+      alert('Please connect to Strava first to auto-populate run data.');
+      return;
+    }
+
+    setLoadingStravaData(true);
+    try {
+      console.log('Loading Strava stats...');
+      const stats = await StravaService.getStats();
+      console.log('Received Strava stats:', stats);
+      
+      if (stats.lastActivity) {
+        console.log('Processing last activity:', stats.lastActivity);
+        
+        // Convert distance from km to meters and time from seconds to seconds
+        const distanceInMeters = Math.round(stats.lastActivity.distance * 1000);
+        const timeInSeconds = stats.lastActivity.movingTime;
+        
+        console.log('Converted values:', {
+          originalDistance: stats.lastActivity.distance,
+          convertedDistance: distanceInMeters,
+          originalTime: stats.lastActivity.movingTime,
+          convertedTime: timeInSeconds
+        });
+        
+        if (distanceInMeters > 0 && timeInSeconds > 0) {
+          setActualDistance(distanceInMeters.toString());
+          setActualTime(timeInSeconds.toString());
+          setStravaDataLoaded(true);
+          
+          console.log('Successfully loaded Strava activity data');
+          alert(`Loaded data from "${stats.lastActivity.name}": ${(distanceInMeters/1000).toFixed(1)}km in ${Math.floor(timeInSeconds/60)}:${(timeInSeconds%60).toString().padStart(2,'0')}`);
+        } else {
+          alert(`The latest Strava activity "${stats.lastActivity.name}" has no distance or time data. This might be an incomplete activity. Please enter your data manually or complete a full run on Strava first.`);
+          console.error('Invalid Strava data:', { distanceInMeters, timeInSeconds });
+        }
+      } else {
+        alert('No recent Strava activities found. Make sure you have completed at least one activity on Strava.');
+        console.log('No lastActivity in stats');
+      }
+    } catch (error: any) {
+      console.error('Error loading Strava data:', error);
+      alert(`Failed to load Strava data: ${error.message}`);
+    } finally {
+      setLoadingStravaData(false);
+    }
+  };
+
+  // Auto-load Strava data when dialog opens if user is connected
+  useEffect(() => {
+    if (isCompleteDialogOpen && auth.isStravaConnected && !stravaDataLoaded) {
+      loadLatestStravaActivity();
+    }
+  }, [isCompleteDialogOpen, auth.isStravaConnected, stravaDataLoaded]);
+
   const handleCompleteRun = async () => {
-    if (!activeRun || !actualDistance || !actualTime) return;
+    if (!activeRun || !actualDistance || !actualTime) {
+      alert('Please enter both actual distance and time');
+      return;
+    }
+
+    const distanceValue = parseInt(actualDistance);
+    const timeValue = parseInt(actualTime);
+
+    if (distanceValue <= 0 || timeValue <= 0) {
+      alert('Distance and time must be greater than 0');
+      return;
+    }
+
+    console.log('Completing run with:', {
+      runId: activeRun.runId,
+      actualDistance: distanceValue,
+      actualTime: timeValue
+    });
 
     setCompleting(true);
     try {
       const result = await completeRun(
         activeRun.runId,
-        parseInt(actualDistance),
-        parseInt(actualTime)
+        distanceValue,
+        timeValue
       );
       
       setIsCompleteDialogOpen(false);
       setActualDistance('');
       setActualTime('');
+      setStravaDataLoaded(false);
       
       // Show success/failure message (you could add toast notifications here)
       console.log('Run completed:', result);
+      alert(`Run completed successfully! ${result.success ? 'You earned your reward!' : 'Better luck next time!'}`);
     } catch (err: any) {
       console.error('Failed to complete run:', err);
+      alert(`Failed to complete run: ${err.message || 'Unknown error'}`);
     } finally {
       setCompleting(false);
+    }
+  };
+
+  // Reset state when dialog closes
+  const handleDialogClose = (open: boolean) => {
+    setIsCompleteDialogOpen(open);
+    if (!open) {
+      setActualDistance('');
+      setActualTime('');
+      setStravaDataLoaded(false);
     }
   };
 
@@ -144,7 +236,7 @@ export const ActiveRun: React.FC = () => {
               <span className="font-medium">Run completed!</span>
             </div>
           ) : (
-            <Dialog open={isCompleteDialogOpen} onOpenChange={setIsCompleteDialogOpen}>
+            <Dialog open={isCompleteDialogOpen} onOpenChange={handleDialogClose}>
               <DialogTrigger asChild>
                 <Button className="w-full">
                   <CheckCircle className="mr-2" size={16} />
@@ -153,19 +245,79 @@ export const ActiveRun: React.FC = () => {
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Complete Your Run</DialogTitle>
+                  <DialogTitle className="flex items-center justify-between">
+                    Complete Your Run
+                    {auth.isStravaConnected && (
+                      <Button
+                        variant="neutral"
+                        size="sm"
+                        onClick={loadLatestStravaActivity}
+                        disabled={loadingStravaData}
+                        className="ml-2"
+                      >
+                        {loadingStravaData ? (
+                          <Loader2 className="animate-spin" size={14} />
+                        ) : (
+                          <RefreshCw size={14} />
+                        )}
+                        Load from Strava
+                      </Button>
+                    )}
+                  </DialogTitle>
                 </DialogHeader>
+                
+                {!auth.isStravaConnected && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <div className="text-sm text-blue-800">
+                      💡 <strong>Tip:</strong> Connect to Strava to automatically populate your run data from your latest activity!
+                      <div className="mt-2 text-xs">
+                        Or manually enter: Distance in meters (e.g., 5000 for 5km) and time in seconds (e.g., 1800 for 30 minutes)
+                      </div>
+                      <Button 
+                        variant="neutral" 
+                        size="sm" 
+                        onClick={() => {
+                          setActualDistance('2000');
+                          setActualTime('600');
+                        }}
+                        className="mt-2 text-xs"
+                      >
+                        Use Example: 2km in 10min
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                {stravaDataLoaded && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                    <div className="text-sm text-green-800">
+                      ✅ Data loaded from your latest Strava activity! You can modify the values below if needed.
+                    </div>
+                  </div>
+                )}
                 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="actualDistance">Actual Distance (meters)</Label>
+                    <Label htmlFor="actualDistance">
+                      Actual Distance (meters)
+                      {stravaDataLoaded && <span className="text-green-600 text-sm ml-1">• From Strava</span>}
+                    </Label>
                     <Input
                       id="actualDistance"
                       type="number"
                       value={actualDistance}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setActualDistance(e.target.value)}
-                      placeholder="Enter actual distance covered"
-                      min="0"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const value = e.target.value;
+                        // Only allow positive numbers
+                        if (value === '' || (parseFloat(value) >= 0 && !isNaN(parseFloat(value)))) {
+                          setActualDistance(value);
+                          // Clear the loaded flag if user manually edits
+                          if (stravaDataLoaded) setStravaDataLoaded(false);
+                        }
+                      }}
+                      placeholder={auth.isStravaConnected ? "Will auto-load from Strava (e.g., 5000 for 5km)" : "Enter distance in meters (e.g., 5000 for 5km)"}
+                      min="1"
+                      step="1"
                     />
                     {actualDistance && (
                       <p className="text-sm text-gray-500">
@@ -173,21 +325,43 @@ export const ActiveRun: React.FC = () => {
                         {((parseInt(actualDistance) / targetDistance) * 100).toFixed(1)}% of target
                       </p>
                     )}
+                    {!actualDistance && (
+                      <p className="text-xs text-gray-400">
+                        Tip: 1km = 1000 meters, so enter 5000 for a 5km run
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="actualTime">Actual Time (seconds)</Label>
+                    <Label htmlFor="actualTime">
+                      Actual Time (seconds)
+                      {stravaDataLoaded && <span className="text-green-600 text-sm ml-1">• From Strava</span>}
+                    </Label>
                     <Input
                       id="actualTime"
                       type="number"
                       value={actualTime}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setActualTime(e.target.value)}
-                      placeholder="Enter actual time taken"
-                      min="0"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const value = e.target.value;
+                        // Only allow positive numbers
+                        if (value === '' || (parseFloat(value) >= 0 && !isNaN(parseFloat(value)))) {
+                          setActualTime(value);
+                          // Clear the loaded flag if user manually edits
+                          if (stravaDataLoaded) setStravaDataLoaded(false);
+                        }
+                      }}
+                      placeholder={auth.isStravaConnected ? "Will auto-load from Strava (e.g., 1800 for 30min)" : "Enter time in seconds (e.g., 1800 for 30min)"}
+                      min="1"
+                      step="1"
                     />
                     {actualTime && (
                       <p className="text-sm text-gray-500">
                         {formatTime(parseInt(actualTime))}
+                      </p>
+                    )}
+                    {!actualTime && (
+                      <p className="text-xs text-gray-400">
+                        Tip: 30 minutes = 1800 seconds, 1 hour = 3600 seconds
                       </p>
                     )}
                   </div>
@@ -218,7 +392,7 @@ export const ActiveRun: React.FC = () => {
 
                   <Button
                     onClick={handleCompleteRun}
-                    disabled={completing || !actualDistance || !actualTime}
+                    disabled={completing || !actualDistance || !actualTime || parseInt(actualDistance) <= 0 || parseInt(actualTime) <= 0}
                     className="w-full"
                   >
                     {completing ? (
@@ -230,6 +404,12 @@ export const ActiveRun: React.FC = () => {
                       'Complete & Claim Reward'
                     )}
                   </Button>
+
+                  {(!actualDistance || !actualTime || parseInt(actualDistance || '0') <= 0 || parseInt(actualTime || '0') <= 0) && (
+                    <div className="text-sm text-gray-500 text-center">
+                      Please enter valid distance (meters) and time (seconds) values greater than 0
+                    </div>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>

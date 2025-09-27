@@ -12,18 +12,11 @@ import { useAuth } from "@/hooks/useAuth"; // <-- Strava hook
 import { useStravaStats } from "@/hooks/useStravaStats"; // <-- New Strava stats hook
 import { StravaService } from "@/services/stravaService";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPersonRunning, faStop, faRefresh } from "@fortawesome/free-solid-svg-icons";
+import { faRefresh } from "@fortawesome/free-solid-svg-icons";
 import EnhancedTomTomMap from "@/components/custom/map/EnhancedTomTomMap";
-import { FitnessDashboard } from "@/components/custom/fitness/FitnessDashboard";
+import { RunStarter } from "@/components/custom/fitness/RunStarter";
+import { ActiveRun } from "@/components/custom/fitness/ActiveRun";
 import type { ZoneMarker } from "@/components/custom/map/EnhancedTomTomMap";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Activity, Map, Target } from "lucide-react";
 
 // Timer component to prevent full page re-renders
 const RunTimer = ({ onTick }: { onTick: React.Dispatch<React.SetStateAction<number>> }) => {
@@ -91,14 +84,8 @@ export default function Home() {
   
   const { stats: stravaStats, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useStravaStats(stravaAccessToken);
   const [isRunning, setIsRunning] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [timer, setTimer] = useState(0);
-  const [startLoading, setStartLoading] = useState(false);
-  const [endLoading, setEndLoading] = useState(false);
-  const [activityId, setActivityId] = useState<string | null>(null);
-  const [startLocation, setStartLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [currentRoute, setCurrentRoute] = useState<Array<{lat: number, lng: number}>>([]);
-  const [activeTab, setActiveTab] = useState<'map' | 'fitness'>('map');
+  const lastRunTime = "42:15"; // Static for display purposes
 
   // Check for existing running activity on component mount
   useEffect(() => {
@@ -109,17 +96,12 @@ export default function Home() {
         const status = await StravaService.getCurrentRunStatus(address);
         if (status.isRunning && status.activity) {
           setIsRunning(true);
-          setActivityId(status.activity.activityId || null);
           
           // Calculate elapsed time from start time
           const startTime = new Date(status.activity.startTime);
           const now = new Date();
           const elapsedSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
           setTimer(elapsedSeconds);
-          
-          if (status.activity.startLocation) {
-            setStartLocation(status.activity.startLocation);
-          }
         }
       } catch (error) {
         console.error('Failed to check running status:', error);
@@ -128,116 +110,6 @@ export default function Home() {
 
     checkRunningStatus();
   }, [address]);
-
-  const startRun = async () => {
-    if (!address) {
-      alert('Please connect your wallet first');
-      return;
-    }
-
-    setStartLoading(true);
-    try {
-      // Get current location if available
-      let location: {lat: number, lng: number} | undefined;
-      
-      if (navigator.geolocation) {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 300000
-            });
-          });
-          
-          location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          setStartLocation(location);
-        } catch (geoError) {
-          console.warn('Could not get location:', geoError);
-        }
-      }
-
-      // Start the run via API
-      const result = await StravaService.startRun(address, location);
-      
-      setIsRunning(true);
-      setShowConfirmDialog(false);
-      setActivityId(result.activityId);
-      setTimer(0);
-      setCurrentRoute(location ? [location] : []);
-      
-      console.log('Run started:', result);
-    } catch (error) {
-      console.error('Failed to start run:', error);
-      alert(`Failed to start run: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setStartLoading(false);
-    }
-  };
-
-  const [lastRunTime, setLastRunTime] = useState("42:15");
-
-  const endRun = async () => {
-    if (!address) {
-      alert('Please connect your wallet first');
-      return;
-    }
-
-    setEndLoading(true);
-    try {
-      // Get current location if available
-      let endLocation: {lat: number, lng: number} | undefined;
-      
-      if (navigator.geolocation) {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 300000
-            });
-          });
-          
-          endLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-        } catch (geoError) {
-          console.warn('Could not get end location:', geoError);
-        }
-      }
-
-      // End the run via API
-      const result = await StravaService.endRun(address, {
-        endLocation,
-        totalDuration: timer,
-        routeData: currentRoute.length > 0 ? currentRoute : undefined
-      });
-
-      setIsRunning(false);
-      setLastRunTime(formatTime(timer));
-      setTimer(0);
-      setActivityId(null);
-      setStartLocation(null);
-      setCurrentRoute([]);
-      
-      // Refresh stats to show the new activity
-      if (refetchStats) {
-        refetchStats();
-      }
-      
-      console.log('Run ended:', result);
-      alert(`Run completed! ${result.message}`);
-    } catch (error) {
-      console.error('Failed to end run:', error);
-      alert(`Failed to end run: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setEndLoading(false);
-    }
-  };
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
@@ -263,33 +135,7 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="mb-8">
-        <div className="flex gap-4">
-          <Button
-            variant={activeTab === 'map' ? 'default' : 'neutral'}
-            onClick={() => setActiveTab('map')}
-            className="flex items-center gap-2 font-bold"
-          >
-            <Map size={16} />
-            Zone Map
-          </Button>
-          <Button
-            variant={activeTab === 'fitness' ? 'default' : 'neutral'}
-            onClick={() => setActiveTab('fitness')}
-            className="flex items-center gap-2 font-bold"
-          >
-            <Target size={16} />
-            Fitness Staking
-          </Button>
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'fitness' ? (
-        <FitnessDashboard />
-      ) : (
-        <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid lg:grid-cols-3 gap-8">
         {/* Left Column */}
         <div className="lg:col-span-1 flex flex-col gap-8">
           {/* Runner Stats */}
@@ -452,38 +298,12 @@ export default function Home() {
                 </div>
               )}
 
-              {/* CTA Button */}
-              {isRunning ? (
-                <Button 
-                  className="w-full border-4 border-black bg-red-500 text-white py-4 flex items-center justify-center gap-3 hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={endRun}
-                  disabled={endLoading}
-                >
-                  {endLoading ? (
-                    <div className="animate-spin text-2xl">⏳</div>
-                  ) : (
-                    <FontAwesomeIcon className="text-2xl" icon={faStop} />
-                  )}
-                  <span className="text-lg font-extrabold uppercase">
-                    {endLoading ? 'Ending Run...' : 'End Run'}
-                  </span>
-                </Button>
-              ) : (
-                <Button 
-                  className="w-full border-4 border-black bg-[#ec4899] text-white py-4 flex items-center justify-center gap-3 hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => setShowConfirmDialog(true)}
-                  disabled={startLoading || !isConnected}
-                >
-                  {startLoading ? (
-                    <div className="animate-spin text-2xl">⏳</div>
-                  ) : (
-                    <FontAwesomeIcon className="text-2xl" icon={faPersonRunning} />
-                  )}
-                  <span className="text-lg font-extrabold uppercase">
-                    {startLoading ? 'Starting...' : !isConnected ? 'Connect Wallet First' : 'Start New Run'}
-                  </span>
-                </Button>
-              )}
+              {/* Fitness Components - Show active run first, then run starter */}
+              <ActiveRun />
+              <RunStarter onRunStarted={(runId) => {
+                console.log('Fitness run started with ID:', runId);
+                // You could optionally also trigger the Strava run here if needed
+              }} />
             </CardContent>
           </Card>
 
@@ -580,41 +400,9 @@ export default function Home() {
           </Card>
         </div>
       </div>
-      )}
 
       {/* Timer Component */}
       {isRunning && <RunTimer onTick={setTimer} />}
-
-      {/* Confirmation Dialog */}
-      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="border-4 border-black">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black">Start New Run</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-lg font-bold text-center mb-2">Are you sure you want to start your run?</p>
-            <p className="text-sm text-gray-600 text-center">
-              Your location will be tracked to capture zones and calculate points.
-            </p>
-          </div>
-          <DialogFooter className="flex gap-4">
-            <Button
-              className="flex-1 border-4 border-black bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => setShowConfirmDialog(false)}
-              disabled={startLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="flex-1 border-4 border-black bg-[#ec4899] text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={startRun}
-              disabled={startLoading}
-            >
-              {startLoading ? 'Starting...' : 'Start Run'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -275,8 +275,24 @@ class Web3Service {
 
   // Complete a fitness run
   async completeFitnessRun(runId: string, actualDistanceMeters: number, actualTimeSeconds: number) {
+    // Ensure service is initialized
+    if (!this.contracts.fitStaking || !this.signer) {
+      console.log('Service not initialized, initializing now...');
+      await this.initialize();
+    }
+
     if (!this.contracts.fitStaking) {
       throw new Error('Staking contract not initialized');
+    }
+
+    console.log('Completing fitness run with params:', {
+      runId,
+      actualDistanceMeters,
+      actualTimeSeconds
+    });
+
+    if (!runId || actualDistanceMeters <= 0 || actualTimeSeconds <= 0) {
+      throw new Error(`Invalid parameters: runId=${runId}, distance=${actualDistanceMeters}, time=${actualTimeSeconds}`);
     }
 
     const tx = await this.contracts.fitStaking.completeRun(
@@ -285,7 +301,9 @@ class Web3Service {
       actualTimeSeconds
     );
     
+    console.log('Transaction submitted:', tx.hash);
     const receipt = await tx.wait();
+    console.log('Transaction confirmed:', receipt);
     
     // Extract completion event
     const completedEvent = receipt.events?.find((e: any) => e.event === 'RunCompleted');
@@ -430,9 +448,9 @@ class Web3Service {
     return this.userAddress;
   }
 
-  // Check if wallet is connected
+  // Check if wallet is connected and contracts are initialized
   isConnected(): boolean {
-    return !!this.userAddress;
+    return !!(this.userAddress && this.contracts.fitStaking);
   }
 }
 

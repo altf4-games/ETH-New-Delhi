@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useFitnessRuns } from '../../../hooks/useFitnessRuns';
 import { useWeb3 } from '../../../hooks/useWeb3';
 import web3Service from '../../../services/web3Service';
-import { Loader2, Play, AlertTriangle, TestTube } from 'lucide-react';
+import { Loader2, Play, TestTube } from 'lucide-react';
 
 interface RunStarterProps {
   onRunStarted?: (runId: string) => void;
@@ -179,18 +179,9 @@ export const RunStarter: React.FC<RunStarterProps> = ({ onRunStarted }) => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Don't show if there's already an active run
+  // Don't show if there's already an active run - ActiveRun component will handle it
   if (activeRun && !activeRun.completed) {
-    return (
-      <Card className="mb-4 border-yellow-200 bg-yellow-50">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-2 text-yellow-800">
-            <AlertTriangle size={20} />
-            <span>You have an active run in progress. Complete it before starting a new one.</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return null; // ActiveRun component will be shown instead
   }
 
   return (
