@@ -13,7 +13,7 @@ export default function Home() {
     <div className="max-w-7xl mx-auto py-8">
       <div className="grid lg:grid-cols-3 gap-8 h-[800px]">
         <div className="lg:col-span-1 flex flex-col gap-8 h-full">
-          <Card className="border-4 border-black flex-1">
+          <Card className="border-4  flex-1">
             <CardHeader className="text-center">
               <div className="w-20 h-20 bg-[#ec4899] border-4 border-black rounded-full mx-auto mb-4 flex items-center justify-center">
                 <span className="text-3xl font-black text-white">C</span>
