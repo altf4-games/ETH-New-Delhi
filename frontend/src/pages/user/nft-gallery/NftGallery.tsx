@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CometCard } from "@/components/ui/comet-card";
 import {
@@ -47,7 +53,7 @@ export function NFTGallery() {
   const confirmSell = () => {
     if (!selectedNft || !validatePrice(sellPrice)) return;
 
-    console.log('Selling NFT:', selectedNft.id, 'for', sellPrice, 'ETH');
+    console.log("Selling NFT:", selectedNft.id, "for", sellPrice, "ETH");
     setShowSellDialog(false);
     setSelectedNft(null);
     setSellPrice("");
@@ -95,6 +101,7 @@ export function NFTGallery() {
         </p>
       </div>
 
+      {/* Stats */}
       <div className="grid md:grid-cols-2 gap-6 mb-12">
         <Card className="border-4 border-black text-center p-6 bg-[#0ea5a4]/10">
           <CardContent>
@@ -111,6 +118,7 @@ export function NFTGallery() {
         </Card>
       </div>
 
+      {/* CTA Card */}
       <div className="mb-12 text-center">
         <Card className="border-4 border-black bg-[#f5cd69] max-w-2xl mx-auto p-8">
           <CardHeader>
@@ -123,10 +131,16 @@ export function NFTGallery() {
           </CardContent>
           <CardFooter className="flex justify-center gap-4">
             <div className="space-y-2 space-x-2">
-              <Button className="border-4 border-black shadow-md font-extrabold" onClick={() => navigate("/user/home")}>
+              <Button
+                className="border-4 border-black shadow-md font-extrabold"
+                onClick={() => navigate("/user/home")}
+              >
                 EXPLORE ZONES
               </Button>
-              <Button className="border-4 border-black bg-[#ec4899] text-white shadow-md font-extrabold" onClick={() => navigate("/user/home")}>
+              <Button
+                className="border-4 border-black bg-[#ec4899] text-white shadow-md font-extrabold"
+                onClick={() => navigate("/user/home")}
+              >
                 START NEW RUN
               </Button>
             </div>
@@ -134,6 +148,7 @@ export function NFTGallery() {
         </Card>
       </div>
 
+      {/* NFT Cards */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {nfts.map((nft) => (
           <Card key={nft.id} className="border-4 border-black p-6">
@@ -141,7 +156,9 @@ export function NFTGallery() {
               className="aspect-square mb-4 flex flex-col items-center justify-center text-center relative border-4 border-black"
               style={{ backgroundColor: nft.color }}
             >
-              <div className="font-mono text-lg font-black text-black">{nft.id}</div>
+              <div className="font-mono text-lg font-black text-black">
+                {nft.id}
+              </div>
               <div className="absolute bottom-2 left-2 right-2">
                 <div className="text-xs font-bold text-black uppercase">
                   {nft.location}
@@ -173,8 +190,8 @@ export function NFTGallery() {
                         nft.power > 70
                           ? "#0ea5a4"
                           : nft.power > 40
-                            ? "#fbbf24"
-                            : "#ec4899",
+                          ? "#fbbf24"
+                          : "#ec4899",
                     }}
                   />
                 </div>
@@ -202,15 +219,21 @@ export function NFTGallery() {
         ))}
       </div>
 
+      {/* Sell Dialog */}
       <Dialog open={showSellDialog} onOpenChange={setShowSellDialog}>
         <DialogContent className="border-4 border-black">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black">Confirm Sale</DialogTitle>
+            <DialogTitle className="text-2xl font-black">
+              Confirm Sale
+            </DialogTitle>
           </DialogHeader>
           {selectedNft && (
             <div className="py-4">
               <div className="mb-6">
-                <div className="aspect-square w-32 mx-auto mb-4 flex flex-col items-center justify-center text-center relative border-4 border-black" style={{ backgroundColor: selectedNft.color }}>
+                <div
+                  className="aspect-square w-32 mx-auto mb-4 flex flex-col items-center justify-center text-center relative border-4 border-black"
+                  style={{ backgroundColor: selectedNft.color }}
+                >
                   <div className="font-mono text-lg font-black text-black">
                     {selectedNft.id}
                   </div>
@@ -240,7 +263,9 @@ export function NFTGallery() {
                   <span className="font-black">{selectedNft.power}%</span>
                 </div>
                 <div className="flex items-center gap-4 border-t-2 border-black pt-3">
-                  <span className="font-bold text-lg whitespace-nowrap">Sale Price:</span>
+                  <span className="font-bold text-lg whitespace-nowrap">
+                    Sale Price:
+                  </span>
                   <div className="flex-1 relative">
                     <input
                       type="text"
@@ -280,38 +305,73 @@ export function NFTGallery() {
         </DialogContent>
       </Dialog>
 
+      {/* Comet View Dialog */}
       {showCometView && selectedNft && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div className="absolute inset-0 bg-black/80" onClick={() => setShowCometView(false)} />
+          <div className="relative flex h-full items-center justify-center">
+            <button
+              onClick={() => setShowCometView(false)}
+              className="absolute right-4 top-4 z-50 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
             <CometCard>
-      <button
-        type="button"
-        className="my-10 flex w-80 cursor-pointer flex-col items-stretch rounded-[16px] border-0 bg-[#1F2121] p-2 saturate-0 md:my-20 md:p-4"
-        aria-label="View invite F7RA"
-        style={{
-          transformStyle: "preserve-3d",
-          transform: "none",
-          opacity: 1,
-        }}
-      >
-        <div className="mx-2 flex-1">
-          <div className="relative mt-2 aspect-[3/4] w-full">
-            <img
-              loading="lazy"
-              className="absolute inset-0 h-full w-full rounded-[16px] bg-[#000000] object-cover contrast-75"
-              alt="Invite background"
-              src="https://images.unsplash.com/photo-1505506874110-6a7a69069a08?q=80&w=1287&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-              style={{
-                boxShadow: "rgba(0, 0, 0, 0.05) 0px 5px 6px 0px",
-                opacity: 1,
-              }}
-            />
+              <div
+                className="my-10 flex w-80 cursor-pointer flex-col items-stretch rounded-[16px] border-0 bg-[#1F2121] p-2 md:my-20 md:p-4"
+          style={{
+            transformStyle: "preserve-3d",
+            transform: "none",
+            opacity: 1,
+          }}
+        >
+          <div className="mx-2 flex-1">
+            <div className="relative mt-2 aspect-[3/4] w-full">
+              <div
+                className="absolute inset-0 h-full w-full rounded-[16px] bg-black object-cover contrast-75"
+                style={{
+                  backgroundColor: selectedNft.color,
+                  boxShadow: "rgba(0, 0, 0, 0.05) 0px 5px 6px 0px",
+                  opacity: 1,
+                }}
+              >
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                  <div className="font-mono text-2xl font-black mb-4">
+                    {selectedNft.id}
+                  </div>
+                  <div className="font-bold text-lg">{selectedNft.location}</div>
+                  <div className="mt-4 font-bold">
+                    Power: {selectedNft.power}%
+                  </div>
+                  <div className="mt-2 px-3 py-1 border-2 border-white rounded font-bold">
+                    Captured: {selectedNft.dateCaptured}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-2 flex flex-shrink-0 items-center justify-between p-4 font-mono text-white">
+            <div className="text-xs">Zone NFT</div>
+            <div className="text-xs text-gray-300 opacity-50">
+              #{selectedNft.id}
+            </div>
           </div>
         </div>
-        <div className="mt-2 flex flex-shrink-0 items-center justify-between p-4 font-mono text-white">
-          <div className="text-xs">Comet Invitation</div>
-          <div className="text-xs text-gray-300 opacity-50">#F7RA</div>
+      </CometCard>
+          </div>
         </div>
-      </button>
-    </CometCard>
       )}
     </div>
   );
