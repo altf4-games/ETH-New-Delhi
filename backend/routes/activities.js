@@ -314,19 +314,19 @@ router.get("/test-token", async (req, res) => {
 
 // GET /api/activities/stats - Get athlete stats from Strava
 router.get("/stats", async (req, res) => {
-  const { stravaToken } = req.query;
+  const { stravaToken, refreshToken } = req.query;
 
   if (!stravaToken) {
     return res.status(400).json({ error: "Strava access token required" });
   }
 
-  try {
+  const tryFetchStats = async (accessToken) => {
     // First, try to get the athlete profile to validate the token
     const athleteResponse = await axios.get(
       "https://www.strava.com/api/v3/athlete",
       {
         headers: {
-          Authorization: `Bearer ${stravaToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       }
     );
@@ -338,7 +338,7 @@ router.get("/stats", async (req, res) => {
       "https://www.strava.com/api/v3/athlete/activities",
       {
         headers: {
-          Authorization: `Bearer ${stravaToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         params: {
           per_page: 200, // Get more activities for better stats
@@ -381,7 +381,7 @@ router.get("/stats", async (req, res) => {
 
     const recentKilometers = Math.round((recentDistance / 1000) * 100) / 100;
 
-    res.json({
+    return {
       success: true,
       stats: {
         totalKilometers,
@@ -401,14 +401,56 @@ router.get("/stats", async (req, res) => {
               }
             : null,
       },
-    });
+    };
+  };
+
+  try {
+    return res.json(await tryFetchStats(stravaToken));
   } catch (error) {
     console.error("Stats fetch error:", error.response?.data || error.message);
+
+    // If token is invalid/expired and we have a refresh token, try to refresh
+    if (error.response?.status === 401 && refreshToken) {
+      try {
+        console.log("Token expired, attempting refresh...");
+        const tokenResponse = await axios.post(
+          "https://www.strava.com/oauth/token",
+          {
+            client_id: process.env.STRAVA_CLIENT_ID,
+            client_secret: process.env.STRAVA_CLIENT_SECRET,
+            refresh_token: refreshToken,
+            grant_type: "refresh_token",
+          }
+        );
+
+        const { access_token } = tokenResponse.data;
+        console.log("Token refreshed successfully, retrying stats fetch...");
+        
+        // Try again with the new token
+        const result = await tryFetchStats(access_token);
+        
+        // Include the new token in the response so frontend can update it
+        return res.json({
+          ...result,
+          newAccessToken: access_token,
+          refreshedToken: true
+        });
+        
+      } catch (refreshError) {
+        console.error("Token refresh failed:", refreshError.response?.data || refreshError.message);
+        return res.status(401).json({
+          error: "Token expired and refresh failed",
+          message: "Please re-authorize with Strava",
+          needsReauth: true
+        });
+      }
+    }
 
     if (error.response?.status === 401) {
       return res.status(401).json({
         error: "Invalid or expired Strava token",
         message: "Please re-authorize with Strava to refresh your token",
+        needsReauth: true,
         details: error.response?.data,
       });
     }

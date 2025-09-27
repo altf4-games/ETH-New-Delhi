@@ -10,6 +10,7 @@ import {
 import { useWallet } from "@/hooks/useWallet";
 import { useAuth } from "@/hooks/useAuth"; // <-- Strava hook
 import { useStravaStats } from "@/hooks/useStravaStats"; // <-- New Strava stats hook
+import { StravaService } from "@/services/stravaService";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPersonRunning, faStop, faRefresh } from "@fortawesome/free-solid-svg-icons";
 import EnhancedTomTomMap from "@/components/custom/map/EnhancedTomTomMap";
@@ -256,22 +257,32 @@ export default function Home() {
                     ⚠️ Strava Token Issue
                   </div>
                   <div className="text-red-600 text-xs mb-2">
-                    Your Strava access token has expired or is invalid. 
-                    Strava tokens expire every 6 hours for security.
+                    {statsError.includes('expired') || statsError.includes('reconnect') ? 
+                      'Your Strava access token has expired or is invalid. Strava tokens expire every 6 hours for security.' :
+                      'There was an issue connecting to Strava. This might be due to network issues or API limits.'
+                    }
                   </div>
-                  <Button
-                    className="w-full bg-red-500 text-white font-bold text-xs py-2 mt-2"
-                    onClick={() => {
-                      // Clear all Strava data and prompt for reconnection
-                      localStorage.removeItem('stravaAccessToken');
-                      localStorage.removeItem('stravaRefreshToken');
-                      localStorage.removeItem('stravaExpiresAt');
-                      localStorage.removeItem('stravaAthlete');
-                      window.location.reload();
-                    }}
-                  >
-                    🔄 Reconnect to Strava
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 bg-orange-500 text-white font-bold text-xs py-2"
+                      onClick={() => refetchStats()}
+                      disabled={statsLoading}
+                    >
+                      {statsLoading ? '⏳ Refreshing...' : '🔄 Try Again'}
+                    </Button>
+                    {(statsError.includes('expired') || statsError.includes('reconnect')) && (
+                      <Button
+                        className="flex-1 bg-red-500 text-white font-bold text-xs py-2"
+                        onClick={() => {
+                          // Clear all Strava data and prompt for reconnection
+                          StravaService.clearTokens();
+                          window.location.reload();
+                        }}
+                      >
+                        � Reconnect Strava
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
 
