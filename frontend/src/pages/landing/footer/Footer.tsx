@@ -1,6 +1,8 @@
 
 export default function Footer() {
   return (
+    <section id="contact">
+
     <footer className="bg-black text-white py-12  ">
       <div className="max-w-4xl mx-auto px-6 text-center">
         <div className="flex flex-wrap justify-center gap-8 mb-8">
@@ -35,5 +37,6 @@ export default function Footer() {
         </p>
       </div>
     </footer>
+    </section>
   );
 }
