@@ -263,4 +263,159 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/activities/test-token - Test if Strava token is valid
+router.get('/test-token', async (req, res) => {
+  const { stravaToken } = req.query;
+  
+  if (!stravaToken) {
+    return res.status(400).json({ error: 'Strava access token required' });
+  }
+  
+  try {
+    const response = await axios.get(
+      'https://www.strava.com/api/v3/athlete',
+      {
+        headers: { 
+          Authorization: `Bearer ${stravaToken}` 
+        }
+      }
+    );
+    
+    res.json({
+      valid: true,
+      athlete: {
+        id: response.data.id,
+        name: `${response.data.firstname} ${response.data.lastname}`,
+        username: response.data.username
+      }
+    });
+    
+  } catch (error) {
+    console.error('Token validation error:', error.response?.data);
+    res.status(401).json({
+      valid: false,
+      error: error.response?.data || error.message,
+      suggestion: 'Token is invalid or expired. Please re-authenticate with Strava.'
+    });
+  }
+});
+
+// GET /api/activities/stats - Get athlete stats from Strava
+router.get('/stats', async (req, res) => {
+  const { stravaToken } = req.query;
+  
+  if (!stravaToken) {
+    return res.status(400).json({ error: 'Strava access token required' });
+  }
+  
+  try {
+    // First, try to get the athlete profile to validate the token
+    const athleteResponse = await axios.get(
+      'https://www.strava.com/api/v3/athlete',
+      {
+        headers: { 
+          Authorization: `Bearer ${stravaToken}` 
+        }
+      }
+    );
+    
+    console.log('Token validated successfully for athlete');
+    
+    // Now fetch athlete activities
+    const statsResponse = await axios.get(
+      'https://www.strava.com/api/v3/athlete/activities',
+      {
+        headers: { 
+          Authorization: `Bearer ${stravaToken}` 
+        },
+        params: {
+          per_page: 200, // Get more activities for better stats
+          page: 1
+        }
+      }
+    );
+
+    const activities = statsResponse.data;
+    
+    // Calculate total distance in kilometers
+    const totalDistanceMeters = activities.reduce((total, activity) => {
+      return total + (activity.distance || 0);
+    }, 0);
+    
+    const totalKilometers = Math.round((totalDistanceMeters / 1000) * 100) / 100; // Round to 2 decimals
+    
+    // Calculate other stats
+    const totalActivities = activities.length;
+    const totalMovingTime = activities.reduce((total, activity) => {
+      return total + (activity.moving_time || 0);
+    }, 0);
+    
+    const totalElevationGain = activities.reduce((total, activity) => {
+      return total + (activity.total_elevation_gain || 0);
+    }, 0);
+    
+    // Get recent activities (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const recentActivities = activities.filter(activity => 
+      new Date(activity.start_date) > thirtyDaysAgo
+    );
+    
+    const recentDistance = recentActivities.reduce((total, activity) => {
+      return total + (activity.distance || 0);
+    }, 0);
+    
+    const recentKilometers = Math.round((recentDistance / 1000) * 100) / 100;
+    
+    res.json({
+      success: true,
+      stats: {
+        totalKilometers,
+        totalActivities,
+        totalMovingTimeHours: Math.round((totalMovingTime / 3600) * 10) / 10,
+        totalElevationGain: Math.round(totalElevationGain),
+        recentKilometers, // Last 30 days
+        recentActivities: recentActivities.length,
+        lastActivity: activities.length > 0 ? {
+          name: activities[0].name,
+          date: activities[0].start_date,
+          distance: Math.round((activities[0].distance / 1000) * 100) / 100,
+          movingTime: activities[0].moving_time
+        } : null
+      }
+    });
+    
+  } catch (error) {
+    console.error('Stats fetch error:', error.response?.data || error.message);
+    
+    if (error.response?.status === 401) {
+      return res.status(401).json({ 
+        error: 'Invalid or expired Strava token',
+        message: 'Please re-authorize with Strava to refresh your token',
+        details: error.response?.data
+      });
+    }
+    
+    if (error.response?.status === 429) {
+      return res.status(429).json({ 
+        error: 'Strava API rate limit exceeded',
+        message: 'Please try again in a few minutes'
+      });
+    }
+    
+    if (error.response?.status === 403) {
+      return res.status(403).json({ 
+        error: 'Insufficient permissions',
+        message: 'Your Strava token does not have the required permissions to read activities'
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to fetch athlete stats',
+      details: error.response?.data?.message || error.message
+    });
+  }
+});
+
 export default router;

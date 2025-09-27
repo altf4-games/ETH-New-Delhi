@@ -109,8 +109,10 @@ export const useStrava = () => {
 
         if (event.data.success === true) {
           console.log('Strava connection successful!');
-          // Store Strava data
+          // Store all Strava token data
           localStorage.setItem('stravaAccessToken', event.data.access_token);
+          localStorage.setItem('stravaRefreshToken', event.data.refresh_token || '');
+          localStorage.setItem('stravaExpiresAt', event.data.expires_at?.toString() || '');
           localStorage.setItem('stravaAthlete', JSON.stringify(event.data.athlete));
           
           setStrava({
@@ -170,6 +172,8 @@ export const useStrava = () => {
     try {
       // Clear localStorage
       localStorage.removeItem('stravaAccessToken');
+      localStorage.removeItem('stravaRefreshToken');
+      localStorage.removeItem('stravaExpiresAt');
       localStorage.removeItem('stravaAthlete');
       
       // Update state
@@ -184,9 +188,79 @@ export const useStrava = () => {
     }
   };
 
+  const refreshStravaToken = async (): Promise<string | null> => {
+    try {
+      const refreshToken = localStorage.getItem('stravaRefreshToken');
+      if (!refreshToken) {
+        console.warn('No refresh token available');
+        return null;
+      }
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/auth/strava/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refresh_token: refreshToken })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to refresh token');
+      }
+
+      const data = await response.json();
+      
+      // Update stored tokens
+      localStorage.setItem('stravaAccessToken', data.access_token);
+      if (data.refresh_token) {
+        localStorage.setItem('stravaRefreshToken', data.refresh_token);
+      }
+      localStorage.setItem('stravaExpiresAt', data.expires_at?.toString() || '');
+
+      // Update state
+      setStrava(prev => ({
+        ...prev,
+        accessToken: data.access_token
+      }));
+
+      return data.access_token;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      // If refresh fails, disconnect user
+      disconnectStrava();
+      return null;
+    }
+  };
+
+  const getValidAccessToken = async (): Promise<string | null> => {
+    const accessToken = localStorage.getItem('stravaAccessToken');
+    const expiresAt = localStorage.getItem('stravaExpiresAt');
+    
+    if (!accessToken) {
+      return null;
+    }
+
+    // Check if token is expired (with 5 minute buffer)
+    if (expiresAt) {
+      const expirationTime = parseInt(expiresAt) * 1000; // Convert to milliseconds
+      const currentTime = Date.now();
+      const bufferTime = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+      if (currentTime >= (expirationTime - bufferTime)) {
+        console.log('Token is expired or will expire soon, refreshing...');
+        return await refreshStravaToken();
+      }
+    }
+
+    return accessToken;
+  };
+
   return {
     ...strava,
     connectStrava,
     disconnectStrava,
+    refreshStravaToken,
+    getValidAccessToken,
   };
 };

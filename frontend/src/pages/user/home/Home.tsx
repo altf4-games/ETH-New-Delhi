@@ -9,8 +9,9 @@ import {
 } from "@/components/ui/card";
 import { useWallet } from "@/hooks/useWallet";
 import { useAuth } from "@/hooks/useAuth"; // <-- Strava hook
+import { useStravaStats } from "@/hooks/useStravaStats"; // <-- New Strava stats hook
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPersonRunning, faStop, faClock } from "@fortawesome/free-solid-svg-icons";
+import { faPersonRunning, faStop, faRefresh } from "@fortawesome/free-solid-svg-icons";
 import EnhancedTomTomMap from "@/components/custom/map/EnhancedTomTomMap";
 import type { ZoneMarker } from "@/components/custom/map/EnhancedTomTomMap";
 import {
@@ -81,6 +82,11 @@ MapContainer.displayName = 'MapContainer';
 export default function Home() {
   const { address, formatAddress, isConnected, isLoading } = useWallet();
   const auth = useAuth();
+  
+  // Get access token from localStorage when Strava is connected
+  const stravaAccessToken = auth.isStravaConnected ? localStorage.getItem('stravaAccessToken') : null;
+  
+  const { stats: stravaStats, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useStravaStats(stravaAccessToken);
   const [isRunning, setIsRunning] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [timer, setTimer] = useState(0);
@@ -182,14 +188,92 @@ export default function Home() {
               {/* Stats */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="border-4 border-black bg-[#0ea5a4] p-3 text-center">
-                  <div className="text-2xl font-black">42</div>
+                  <div className="text-2xl font-black">
+                    {statsLoading ? (
+                      <div className="animate-pulse">...</div>
+                    ) : statsError ? (
+                      <span className="text-sm">Error</span>
+                    ) : (
+                      stravaStats?.totalKilometers?.toFixed(1) || '0'
+                    )}
+                  </div>
                   <div className="text-sm font-bold uppercase">Total KM</div>
                 </div>
                 <div className="border-4 border-black bg-[#fbbf24] p-3 text-center">
-                  <div className="text-2xl font-black">4</div>
-                  <div className="text-sm font-bold uppercase">Zones Owned</div>
+                  <div className="text-2xl font-black">
+                    {statsLoading ? (
+                      <div className="animate-pulse">...</div>
+                    ) : (
+                      stravaStats?.totalActivities || 4
+                    )}
+                  </div>
+                  <div className="text-sm font-bold uppercase">Total Runs</div>
+                </div>
+                <div className="border-4 border-black bg-[#ec4899] p-3 text-center">
+                  <div className="text-2xl font-black">
+                    {statsLoading ? (
+                      <div className="animate-pulse">...</div>
+                    ) : (
+                      stravaStats?.recentKilometers?.toFixed(1) || '0'
+                    )}
+                  </div>
+                  <div className="text-sm font-bold uppercase">Recent KM</div>
+                  <div className="text-xs font-normal">(30 days)</div>
+                </div>
+                <div className="border-4 border-black bg-[#10b981] p-3 text-center">
+                  <div className="text-2xl font-black">
+                    {statsLoading ? (
+                      <div className="animate-pulse">...</div>
+                    ) : (
+                      Math.round(stravaStats?.totalElevationGain || 0)
+                    )}
+                  </div>
+                  <div className="text-sm font-bold uppercase">Elevation</div>
+                  <div className="text-xs font-normal">(meters)</div>
                 </div>
               </div>
+
+              {/* Refresh Stats Button */}
+              {auth.isStravaConnected && (
+                <Button 
+                  variant="neutral"
+                  className="w-full border-2 border-gray-300 text-gray-700 font-bold text-sm py-2 hover:bg-gray-100"
+                  onClick={refetchStats}
+                  disabled={statsLoading}
+                >
+                  <FontAwesomeIcon 
+                    icon={faRefresh} 
+                    className={`mr-2 ${statsLoading ? 'animate-spin' : ''}`} 
+                  />
+                  {statsLoading ? 'Updating...' : 'Refresh Stats'}
+                </Button>
+              )}
+
+              {/* Error Display */}
+              {statsError && auth.isStravaConnected && (
+                <div className="border-2 border-red-300 bg-red-50 p-3 text-center">
+                  <div className="text-red-700 text-sm font-bold mb-2">
+                    ⚠️ Strava Token Issue
+                  </div>
+                  <div className="text-red-600 text-xs mb-2">
+                    Your Strava access token has expired or is invalid. 
+                    Strava tokens expire every 6 hours for security.
+                  </div>
+                  <Button
+                    className="w-full bg-red-500 text-white font-bold text-xs py-2 mt-2"
+                    onClick={() => {
+                      // Clear all Strava data and prompt for reconnection
+                      localStorage.removeItem('stravaAccessToken');
+                      localStorage.removeItem('stravaRefreshToken');
+                      localStorage.removeItem('stravaExpiresAt');
+                      localStorage.removeItem('stravaAthlete');
+                      window.location.reload();
+                    }}
+                  >
+                    🔄 Reconnect to Strava
+                  </Button>
+                </div>
+              )}
 
               {/* Running Timer */}
               {isRunning && (
@@ -232,22 +316,54 @@ export default function Home() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="font-bold">Distance:</span>
-                <span className="font-black">8.5 KM</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-bold">Points:</span>
-                <span className="font-black">+450</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-bold">Elevation:</span>
-                <span className="font-black">127m</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-bold">Time:</span>
-                <span className="font-black">{isRunning ? formatTime(timer) : lastRunTime}</span>
-              </div>
+              {auth.isStravaConnected && stravaStats?.lastActivity ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="font-bold">Activity:</span>
+                    <span className="font-black text-right flex-1 ml-2 truncate">
+                      {stravaStats.lastActivity.name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-bold">Distance:</span>
+                    <span className="font-black">{stravaStats.lastActivity.distance} KM</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-bold">Time:</span>
+                    <span className="font-black">
+                      {isRunning 
+                        ? formatTime(timer) 
+                        : `${Math.floor(stravaStats.lastActivity.movingTime / 60)}:${String(stravaStats.lastActivity.movingTime % 60).padStart(2, '0')}`
+                      }
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-bold">Date:</span>
+                    <span className="font-black">
+                      {new Date(stravaStats.lastActivity.date).toLocaleDateString()}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between">
+                    <span className="font-bold">Distance:</span>
+                    <span className="font-black">8.5 KM</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-bold">Points:</span>
+                    <span className="font-black">+450</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-bold">Elevation:</span>
+                    <span className="font-black">127m</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-bold">Time:</span>
+                    <span className="font-black">{isRunning ? formatTime(timer) : lastRunTime}</span>
+                  </div>
+                </>
+              )}
             </CardContent>
             <CardFooter>
               <Button

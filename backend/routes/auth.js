@@ -40,7 +40,7 @@ router.get('/strava/callback', async (req, res) => {
       grant_type: 'authorization_code'
     });
     
-    const { access_token, athlete } = tokenResponse.data;
+    const { access_token, refresh_token, expires_at, expires_in, athlete } = tokenResponse.data;
     
     // Return HTML page that communicates with parent window
     const athleteData = {
@@ -53,6 +53,9 @@ router.get('/strava/callback', async (req, res) => {
         profile_picture: athlete.profile
       },
       access_token: access_token,
+      refresh_token: refresh_token,
+      expires_at: expires_at,
+      expires_in: expires_in,
       nextStep: 'Connect your MetaMask wallet to start capturing zones!'
     };
 
@@ -107,6 +110,41 @@ router.get('/strava/callback', async (req, res) => {
     console.error('Strava OAuth error:', error.response?.data || error.message);
     res.status(500).json({ 
       error: 'Failed to authenticate with Strava',
+      details: error.response?.data?.message || error.message
+    });
+  }
+});
+
+// POST /api/auth/strava/refresh - Refresh Strava access token
+router.post('/strava/refresh', async (req, res) => {
+  const { refresh_token } = req.body;
+  
+  if (!refresh_token) {
+    return res.status(400).json({ error: 'Refresh token required' });
+  }
+  
+  try {
+    const tokenResponse = await axios.post('https://www.strava.com/oauth/token', {
+      client_id: process.env.STRAVA_CLIENT_ID,
+      client_secret: process.env.STRAVA_CLIENT_SECRET,
+      refresh_token: refresh_token,
+      grant_type: 'refresh_token'
+    });
+    
+    const { access_token, refresh_token: new_refresh_token, expires_at, expires_in } = tokenResponse.data;
+    
+    res.json({
+      success: true,
+      access_token,
+      refresh_token: new_refresh_token,
+      expires_at,
+      expires_in
+    });
+    
+  } catch (error) {
+    console.error('Token refresh error:', error.response?.data || error.message);
+    res.status(401).json({ 
+      error: 'Failed to refresh token',
       details: error.response?.data?.message || error.message
     });
   }
