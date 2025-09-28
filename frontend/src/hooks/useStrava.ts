@@ -74,7 +74,7 @@ export const useStrava = () => {
       setStrava(prev => ({ ...prev, isLoading: true }));
 
       // Open Strava OAuth in popup window
-      const authUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/strava`;
+      const authUrl = `${import.meta.env.VITE_API_URL || 'https://eth.skillversus.xyz'}/api/auth/strava`;
       const popup = window.open(
         authUrl, 
         'strava-auth',
@@ -85,14 +85,14 @@ export const useStrava = () => {
       const handleMessage = (event: MessageEvent) => {
         console.log('Received message:', event.data, 'from origin:', event.origin);
         
-        // Allow messages from the same origin or localhost (for development)
+        // Allow messages from the same origin or production backend (for deployment)
         const allowedOrigins = [
           window.location.origin,
-          'http://localhost:3000',
-          'https://localhost:3000'
+          'https://eth.skillversus.xyz',
+          'https://runft.vercel.app'
         ];
         
-        if (!allowedOrigins.some(origin => event.origin === origin || event.origin.includes('localhost'))) {
+        if (!allowedOrigins.some(origin => event.origin === origin || event.origin.includes('localhost') || event.origin.includes('vercel.app') || event.origin.includes('skillversus.xyz'))) {
           console.log('Message rejected due to origin:', event.origin);
           return;
         }
@@ -196,7 +196,7 @@ export const useStrava = () => {
         return null;
       }
 
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://eth.skillversus.xyz';
       const response = await fetch(`${apiUrl}/api/auth/strava/refresh`, {
         method: 'POST',
         headers: {

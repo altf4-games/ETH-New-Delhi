@@ -30,7 +30,7 @@ export class StravaService {
 
   private static async refreshToken(refreshToken: string): Promise<string | null> {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://eth.skillversus.xyz';
       const response = await fetch(`${apiUrl}/api/auth/strava/refresh`, {
         method: 'POST',
         headers: {
@@ -117,7 +117,7 @@ export class StravaService {
     try {
       const accessToken = await this.refreshTokenIfNeeded();
       const refreshToken = localStorage.getItem('stravaRefreshToken');
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://eth.skillversus.xyz';
       
       if (!accessToken) {
         throw new Error('Your Strava access token has expired. Please reconnect your Strava account.');
@@ -172,7 +172,7 @@ export class StravaService {
 
   public static async startRun(walletAddress: string, startLocation?: { lat: number; lng: number }) {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://eth.skillversus.xyz';
       
       const response = await fetch(`${apiUrl}/api/activities/start`, {
         method: 'POST',
@@ -217,7 +217,7 @@ export class StravaService {
     }
   ) {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://eth.skillversus.xyz';
       
       const response = await fetch(`${apiUrl}/api/activities/end`, {
         method: 'POST',
@@ -253,7 +253,7 @@ export class StravaService {
 
   public static async getCurrentRunStatus(walletAddress: string) {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://eth.skillversus.xyz';
       
       const response = await fetch(`${apiUrl}/api/activities/current?walletAddress=${encodeURIComponent(walletAddress)}`);
 
