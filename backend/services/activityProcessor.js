@@ -2,6 +2,7 @@ import axios from 'axios';
 import { computePoints } from './pointsEngine.js';
 import { gpsToH3 } from './h3Utils.js';
 import { runAntiCheat } from './antiCheat.js';
+import { mintNFTForRun } from './nftService.js';
 import { wss } from '../server.js';
 
 export async function processActivity(eventData) {
@@ -79,6 +80,14 @@ export async function processActivity(eventData) {
     
     // Trigger reward distribution for significant achievements
     await checkRewardTriggers(processedActivity, zoneCaptures);
+    
+    // Mint NFT for completed run (if it meets criteria)
+    try {
+      await mintNFTForCompletedRun(processedActivity, pointsResult, h3Zones);
+    } catch (nftError) {
+      console.error('NFT minting failed, but activity processed successfully:', nftError);
+      // Don't fail the entire process if NFT minting fails
+    }
     
     return {
       activityId,
@@ -222,4 +231,122 @@ function broadcastToUser(userId, message) {
       }));
     }
   });
+}
+
+// NFT minting function for completed runs
+async function mintNFTForCompletedRun(processedActivity, pointsResult, h3Zones) {
+  try {
+    // Check if run meets NFT minting criteria
+    const meetsNFTCriteria = checkNFTMintingCriteria(processedActivity, pointsResult);
+    
+    if (!meetsNFTCriteria.shouldMint) {
+      console.log('Run does not meet NFT minting criteria:', meetsNFTCriteria.reason);
+      return null;
+    }
+    
+    // Calculate run statistics
+    const runStats = calculateRunStatistics(processedActivity);
+    
+    // Determine the primary zone for the run
+    const primaryZone = determinePrimaryZone(h3Zones);
+    
+    // Get user wallet address (in production, fetch from user profile)
+    const walletAddress = await getUserWalletAddress(processedActivity.userId);
+    
+    if (!walletAddress) {
+      console.log('User wallet address not found, skipping NFT mint');
+      return null;
+    }
+    
+    // Mint NFT
+    const nftResult = await mintNFTForRun({
+      runner: walletAddress,
+      distance: runStats.distance,
+      duration: runStats.duration,
+      zoneName: primaryZone.name,
+      zoneCoordinates: primaryZone.coordinates,
+      pointsEarned: pointsResult.totalPoints,
+      timestamp: processedActivity.processedAt
+    });
+    
+    if (nftResult.success) {
+      console.log('NFT minted successfully:', nftResult.tokenId);
+      
+      // Notify user via WebSocket
+      broadcastToUser(processedActivity.userId, {
+        type: 'nft_minted',
+        activityId: processedActivity.activityId,
+        tokenId: nftResult.tokenId,
+        runStats,
+        points: pointsResult.totalPoints
+      });
+    }
+    
+    return nftResult;
+  } catch (error) {
+    console.error('Error minting NFT for run:', error);
+    throw error;
+  }
+}
+
+function checkNFTMintingCriteria(processedActivity, pointsResult) {
+  // Criteria for NFT minting
+  const minDistance = 1000; // 1km minimum
+  const minPoints = 10; // minimum points
+  
+  const runStats = calculateRunStatistics(processedActivity);
+  
+  if (runStats.distance < minDistance) {
+    return { shouldMint: false, reason: `Distance ${runStats.distance}m is less than required ${minDistance}m` };
+  }
+  
+  if (pointsResult.totalPoints < minPoints) {
+    return { shouldMint: false, reason: `Points ${pointsResult.totalPoints} is less than required ${minPoints}` };
+  }
+  
+  return { shouldMint: true, reason: 'All criteria met' };
+}
+
+function calculateRunStatistics(processedActivity) {
+  // Extract basic run statistics from streams
+  const { streams } = processedActivity;
+  
+  if (!streams || !streams.latlng || !streams.time) {
+    return {
+      distance: 0,
+      duration: 0,
+      averageSpeed: 0
+    };
+  }
+  
+  // Calculate distance (simplified - in production use proper GPS distance calculation)
+  const distance = streams.latlng.length * 50; // Rough approximation: 50m per GPS point
+  
+  // Calculate duration
+  const timeData = streams.time?.data || [];
+  const duration = timeData.length > 0 ? timeData[timeData.length - 1] - timeData[0] : 0;
+  
+  // Calculate average speed
+  const averageSpeed = duration > 0 ? distance / duration : 0;
+  
+  return {
+    distance,
+    duration,
+    averageSpeed
+  };
+}
+
+function determinePrimaryZone(h3Zones) {
+  // For now, return a default zone
+  // In production, this would analyze the h3Zones to find the most significant zone
+  return {
+    name: h3Zones.length > 0 ? `Zone ${h3Zones[0].slice(0, 8)}` : 'Fitness Zone',
+    coordinates: '28.6139,77.2090' // Default to Delhi coordinates
+  };
+}
+
+async function getUserWalletAddress(userId) {
+  // In production, fetch from user profile database
+  // For demo purposes, return null to skip NFT minting
+  return null;
 }

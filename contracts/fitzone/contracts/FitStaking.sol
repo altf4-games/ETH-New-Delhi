@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
@@ -54,7 +54,7 @@ contract FitStaking is ReentrancyGuard, Ownable {
         uint256 reward
     );
 
-    constructor() {}
+    constructor() Ownable(msg.sender) {}
 
     /**
      * @dev Start a new run with stake

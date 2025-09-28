@@ -4,8 +4,8 @@ pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title FitZone
@@ -75,7 +75,7 @@ contract FitZone is
         uint256 daysPassed
     );
 
-    constructor() ERC721("FitConquer Zone", "FITZONE") {}
+    constructor() ERC721("FitConquer Zone", "FITZONE") Ownable(msg.sender) {}
 
     function claimZone(
         string calldata h3Index,
@@ -268,7 +268,7 @@ contract FitZone is
 
         // Calculate total captures across all zones
         for (uint256 i = 1; i < _nextTokenId; i++) {
-            if (_exists(i)) {
+            if (_ownerOf(i) != address(0)) {
                 totalCaptures += zones[i].totalCaptures;
             }
         }
@@ -305,13 +305,19 @@ contract FitZone is
         IERC20(tokenContract).transfer(owner(), amount);
     }
 
-    function _beforeTokenTransfer(
-        address from,
+    function _update(
         address to,
         uint256 tokenId,
-        uint256 batchSize
+        address auth
+    ) internal override(ERC721, ERC721Enumerable) returns (address) {
+        return super._update(to, tokenId, auth);
+    }
+    
+    function _increaseBalance(
+        address account,
+        uint128 value
     ) internal override(ERC721, ERC721Enumerable) {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+        super._increaseBalance(account, value);
     }
 
     function supportsInterface(
@@ -323,7 +329,7 @@ contract FitZone is
     function tokenURI(
         uint256 tokenId
     ) public view override returns (string memory) {
-        require(_exists(tokenId), "Token does not exist");
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
 
         ZoneInfo memory zone = zones[tokenId];
         uint256 currentPower = computeCurrentPower(

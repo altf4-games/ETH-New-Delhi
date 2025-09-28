@@ -33,7 +33,7 @@ import {
   ArrowUpDown
 } from "lucide-react";
 
-export function Market() {
+export function Marketplace() {
   const [marketplaceNFTs, setMarketplaceNFTs] = useState<MarketplaceListing[]>([]);
   const [filteredNFTs, setFilteredNFTs] = useState<MarketplaceListing[]>([]);
   const [selectedNft, setSelectedNft] = useState<MarketplaceListing | null>(null);

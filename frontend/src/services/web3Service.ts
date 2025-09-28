@@ -11,6 +11,7 @@ declare global {
 export const CONTRACTS = {
   FITZONE: "0xDF850D656526925F3BC148dB4C66a46509FCde64", // Your deployed FitStaking contract
   FITSTAKING: "0xDF850D656526925F3BC148dB4C66a46509FCde64", // Same contract for now
+  FITNFT: "0x6B219A0fD37A89D52Df66cbD9Ef59B1A56E88e49", // Deployed NFT contract
 };
 
 // Contract ABIs (simplified for key functions)
@@ -33,6 +34,24 @@ export const FITSTAKING_ABI = [
   "function MIN_STAKE() external view returns (uint256)",
   "event RunStarted(uint256 indexed runId, address indexed runner, uint256 stakeAmount, uint256 targetDistance, uint256 estimatedTime)",
   "event RunCompleted(uint256 indexed runId, address indexed runner, bool success, uint256 actualDistance, uint256 actualTime, uint256 reward)"
+];
+
+export const FITNFT_ABI = [
+  "function mintRunNFT(address runner, uint256 distance, uint256 duration, string memory zoneName, string memory zoneCoordinates, uint256 pointsEarned, string memory metadataURI) external returns (uint256)",
+  "function listNFT(uint256 tokenId, uint256 price) external",
+  "function buyNFT(uint256 tokenId) external payable",
+  "function cancelListing(uint256 tokenId) external",
+  "function updatePrice(uint256 tokenId, uint256 newPrice) external",
+  "function getListedNFTs() external view returns (tuple(uint256 tokenId, address seller, uint256 price, bool active, uint256 listedAt)[] memory)",
+  "function getUserNFTs(address user) external view returns (uint256[] memory)",
+  "function getRunData(uint256 tokenId) external view returns (tuple(address runner, uint256 distance, uint256 duration, uint256 timestamp, string zoneName, string zoneCoordinates, uint256 pointsEarned, uint256 averageSpeed))",
+  "function ownerOf(uint256 tokenId) external view returns (address)",
+  "function tokenURI(uint256 tokenId) external view returns (string memory)",
+  "function totalSupply() external view returns (uint256)",
+  "event NFTMinted(uint256 indexed tokenId, address indexed runner, uint256 distance, uint256 duration, string zoneName, uint256 pointsEarned)",
+  "event NFTListed(uint256 indexed tokenId, address indexed seller, uint256 price)",
+  "event NFTSold(uint256 indexed tokenId, address indexed seller, address indexed buyer, uint256 price)",
+  "event ListingCancelled(uint256 indexed tokenId, address indexed seller)"
 ];
 
 // Network configurations
@@ -175,10 +194,12 @@ class Web3Service {
       // Initialize contracts
       this.contracts.fitZone = new ethers.Contract(CONTRACTS.FITZONE, FITZONE_ABI, this.signer);
       this.contracts.fitStaking = new ethers.Contract(CONTRACTS.FITSTAKING, FITSTAKING_ABI, this.signer);
+      this.contracts.fitNFT = new ethers.Contract(CONTRACTS.FITNFT, FITNFT_ABI, this.signer);
       
       console.log('Contracts initialized:', {
         fitZone: this.contracts.fitZone.address,
-        fitStaking: this.contracts.fitStaking.address
+        fitStaking: this.contracts.fitStaking.address,
+        fitNFT: this.contracts.fitNFT.address
       });
       
       // Verify contract exists
@@ -441,6 +462,228 @@ class Web3Service {
     if (this.contracts.fitZone) {
       this.contracts.fitZone.removeAllListeners();
     }
+    if (this.contracts.fitNFT) {
+      this.contracts.fitNFT.removeAllListeners();
+    }
+  }
+
+  // ========== NFT MARKETPLACE METHODS ==========
+
+  // Mint NFT for user's own run
+  async mintRunNFT(
+    distance: string,
+    duration: string, 
+    zoneName: string,
+    zoneCoordinates: string,
+    pointsEarned: string,
+    metadataURI: string
+  ): Promise<string | null> {
+    if (!this.contracts.fitNFT || !this.signer || !this.userAddress) {
+      throw new Error('Contract, signer, or user address not initialized');
+    }
+
+    try {
+      const contractWithSigner = this.contracts.fitNFT.connect(this.signer);
+      
+      const tx = await contractWithSigner.mintRunNFT(
+        this.userAddress, // runner (user mints for themselves)
+        distance,
+        duration,
+        zoneName,
+        zoneCoordinates,
+        pointsEarned,
+        metadataURI
+      );
+      
+      const receipt = await tx.wait();
+      
+      // Extract token ID from the mint event
+      const mintEvent = receipt.events?.find((e: any) => e.event === 'NFTMinted');
+      const tokenId = mintEvent ? mintEvent.args.tokenId.toString() : null;
+      
+      return tokenId;
+    } catch (error) {
+      console.error('Error minting NFT:', error);
+      throw error;
+    }
+  }
+
+  // Get user's NFTs
+  async getUserNFTs(): Promise<NFTData[]> {
+    if (!this.contracts.fitNFT || !this.userAddress) {
+      return [];
+    }
+
+    try {
+      const tokenIds = await this.contracts.fitNFT.getUserNFTs(this.userAddress);
+      const nfts: NFTData[] = [];
+
+      for (const tokenId of tokenIds) {
+        const runData = await this.contracts.fitNFT.getRunData(tokenId);
+        const tokenURI = await this.contracts.fitNFT.tokenURI(tokenId);
+        const owner = await this.contracts.fitNFT.ownerOf(tokenId);
+
+        nfts.push({
+          tokenId: tokenId.toString(),
+          owner,
+          runData: {
+            runner: runData.runner,
+            distance: runData.distance.toString(),
+            duration: runData.duration.toString(),
+            timestamp: new Date(runData.timestamp.toNumber() * 1000),
+            zoneName: runData.zoneName,
+            zoneCoordinates: runData.zoneCoordinates,
+            pointsEarned: runData.pointsEarned.toString(),
+            averageSpeed: runData.averageSpeed.toString()
+          },
+          metadataURI: tokenURI,
+          isListed: false // Will be updated if needed
+        });
+      }
+
+      return nfts;
+    } catch (error) {
+      console.error('Error fetching user NFTs:', error);
+      return [];
+    }
+  }
+
+  // Get all listed NFTs for marketplace
+  async getMarketplaceNFTs(): Promise<MarketplaceListing[]> {
+    if (!this.contracts.fitNFT) {
+      return [];
+    }
+
+    try {
+      const listings = await this.contracts.fitNFT.getListedNFTs();
+      const marketplaceNFTs: MarketplaceListing[] = [];
+
+      for (const listing of listings) {
+        const runData = await this.contracts.fitNFT.getRunData(listing.tokenId);
+        const tokenURI = await this.contracts.fitNFT.tokenURI(listing.tokenId);
+
+        marketplaceNFTs.push({
+          tokenId: listing.tokenId.toString(),
+          seller: listing.seller,
+          price: ethers.utils.formatEther(listing.price),
+          listedAt: new Date(listing.listedAt.toNumber() * 1000),
+          runData: {
+            runner: runData.runner,
+            distance: runData.distance.toString(),
+            duration: runData.duration.toString(),
+            timestamp: new Date(runData.timestamp.toNumber() * 1000),
+            zoneName: runData.zoneName,
+            zoneCoordinates: runData.zoneCoordinates,
+            pointsEarned: runData.pointsEarned.toString(),
+            averageSpeed: runData.averageSpeed.toString()
+          },
+          metadataURI: tokenURI
+        });
+      }
+
+      return marketplaceNFTs;
+    } catch (error) {
+      console.error('Error fetching marketplace NFTs:', error);
+      return [];
+    }
+  }
+
+  // List NFT for sale
+  async listNFT(tokenId: string, priceInEth: string): Promise<boolean> {
+    if (!this.contracts.fitNFT || !this.signer) {
+      throw new Error('Contract or signer not initialized');
+    }
+
+    try {
+      const priceInWei = ethers.utils.parseEther(priceInEth);
+      const contractWithSigner = this.contracts.fitNFT.connect(this.signer);
+      
+      const tx = await contractWithSigner.listNFT(tokenId, priceInWei);
+      await tx.wait();
+      
+      return true;
+    } catch (error) {
+      console.error('Error listing NFT:', error);
+      throw error;
+    }
+  }
+
+  // Buy NFT from marketplace
+  async buyNFT(tokenId: string, priceInEth: string): Promise<boolean> {
+    if (!this.contracts.fitNFT || !this.signer) {
+      throw new Error('Contract or signer not initialized');
+    }
+
+    try {
+      const priceInWei = ethers.utils.parseEther(priceInEth);
+      const contractWithSigner = this.contracts.fitNFT.connect(this.signer);
+      
+      const tx = await contractWithSigner.buyNFT(tokenId, { value: priceInWei });
+      await tx.wait();
+      
+      return true;
+    } catch (error) {
+      console.error('Error buying NFT:', error);
+      throw error;
+    }
+  }
+
+  // Cancel NFT listing
+  async cancelListing(tokenId: string): Promise<boolean> {
+    if (!this.contracts.fitNFT || !this.signer) {
+      throw new Error('Contract or signer not initialized');
+    }
+
+    try {
+      const contractWithSigner = this.contracts.fitNFT.connect(this.signer);
+      
+      const tx = await contractWithSigner.cancelListing(tokenId);
+      await tx.wait();
+      
+      return true;
+    } catch (error) {
+      console.error('Error canceling listing:', error);
+      throw error;
+    }
+  }
+
+  // Update listing price
+  async updatePrice(tokenId: string, newPriceInEth: string): Promise<boolean> {
+    if (!this.contracts.fitNFT || !this.signer) {
+      throw new Error('Contract or signer not initialized');
+    }
+
+    try {
+      const priceInWei = ethers.utils.parseEther(newPriceInEth);
+      const contractWithSigner = this.contracts.fitNFT.connect(this.signer);
+      
+      const tx = await contractWithSigner.updatePrice(tokenId, priceInWei);
+      await tx.wait();
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating price:', error);
+      throw error;
+    }
+  }
+
+  // Listen for NFT events
+  onNFTMinted(callback: (...args: any[]) => void): void {
+    if (this.contracts.fitNFT) {
+      this.contracts.fitNFT.on('NFTMinted', callback);
+    }
+  }
+
+  onNFTListed(callback: (...args: any[]) => void): void {
+    if (this.contracts.fitNFT) {
+      this.contracts.fitNFT.on('NFTListed', callback);
+    }
+  }
+
+  onNFTSold(callback: (...args: any[]) => void): void {
+    if (this.contracts.fitNFT) {
+      this.contracts.fitNFT.on('NFTSold', callback);
+    }
   }
 
   // Get user address
@@ -452,6 +695,35 @@ class Web3Service {
   isConnected(): boolean {
     return !!(this.userAddress && this.contracts.fitStaking);
   }
+}
+
+// Type definitions for NFT data
+export interface NFTRunData {
+  runner: string;
+  distance: string;
+  duration: string;
+  timestamp: Date;
+  zoneName: string;
+  zoneCoordinates: string;
+  pointsEarned: string;
+  averageSpeed: string;
+}
+
+export interface NFTData {
+  tokenId: string;
+  owner: string;
+  runData: NFTRunData;
+  metadataURI: string;
+  isListed: boolean;
+}
+
+export interface MarketplaceListing {
+  tokenId: string;
+  seller: string;
+  price: string;
+  listedAt: Date;
+  runData: NFTRunData;
+  metadataURI: string;
 }
 
 export default new Web3Service();

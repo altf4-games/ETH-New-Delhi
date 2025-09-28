@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CometCard } from "@/components/ui/comet-card";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { useWallet } from "@/hooks/useWallet";
 import NFTService from "@/services/nftService";
 import type { NFTData, MarketplaceListing } from "@/services/web3Service";
-import { Loader2, Trophy, TrendingUp, Timer, MapPin, Award, Eye, ShoppingCart, DollarSign, Calendar, RefreshCw } from "lucide-react";
+import { Loader2, Trophy, TrendingUp, Timer, MapPin, Award, Eye, ShoppingCart, DollarSign, Calendar } from "lucide-react";
 
 export function NFTGallery() {
   const [userNFTs, setUserNFTs] = useState<NFTData[]>([]);
@@ -193,6 +194,7 @@ export function NFTGallery() {
         <CardFooter className="p-4 pt-0">
           <div className="grid grid-cols-2 gap-2 w-full">
             <Button
+              variant="outline"
               size="sm"
               onClick={() => setShowCometView(true)}
               className="border-2 border-gray-600"
@@ -258,27 +260,13 @@ export function NFTGallery() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       {/* Header */}
-      <div className="mb-8 flex justify-between items-start">
-        <div>
-          <h1 className="text-5xl font-black uppercase mb-4">
-            NFT <span className="text-[#0ea5a4]">GALLERY</span>
-          </h1>
-          <p className="text-xl font-bold text-gray-700">
-            Your fitness achievements immortalized as NFTs. Trade, collect, and showcase your runs!
-          </p>
-        </div>
-        <Button 
-          onClick={loadNFTs}
-          className="bg-teal-600 hover:bg-teal-700 border-2 border-teal-800 text-white font-bold px-6 py-3"
-          disabled={loading || !isConnected}
-        >
-          {loading ? (
-            <Loader2 className="mr-2 animate-spin" size={20} />
-          ) : (
-            <RefreshCw className="mr-2" size={20} />
-          )}
-          {loading ? 'Loading...' : 'Refresh NFTs'}
-        </Button>
+      <div className="mb-8">
+        <h1 className="text-5xl font-black uppercase mb-4">
+          NFT <span className="text-[#0ea5a4]">GALLERY</span>
+        </h1>
+        <p className="text-xl font-bold text-gray-700">
+          Your fitness achievements immortalized as NFTs. Trade, collect, and showcase your runs!
+        </p>
       </div>
 
       {/* Tab Navigation */}
@@ -311,36 +299,18 @@ export function NFTGallery() {
       {activeTab === 'owned' ? (
         <div>
           {userNFTs.length === 0 ? (
-            <div className="space-y-6">
-              <div className="text-center py-12 bg-gray-50 border-4 border-gray-200">
-                <Trophy className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No NFTs Found</h3>
-                <p className="text-gray-600 mb-4">
-                  Complete runs to earn NFTs that capture your fitness achievements!
-                </p>
-                <Button 
-                  onClick={() => navigate('/user/home')}
-                  className="bg-blue-600 hover:bg-blue-700 border-2 border-blue-800"
-                >
-                  Start Running
-                </Button>
-              </div>
-              
-              {/* Instructions for adding NFTs to MetaMask */}
-              <div className="bg-yellow-50 border-4 border-yellow-300 p-6">
-                <h4 className="font-bold text-lg mb-3">🦊 Already minted NFTs? Add them to MetaMask:</h4>
-                <div className="space-y-2 text-sm">
-                  <p><strong>1.</strong> Open MetaMask and go to the <strong>NFTs</strong> tab</p>
-                  <p><strong>2.</strong> Click <strong>"Import NFT"</strong></p>
-                  <p><strong>3.</strong> Enter these details:</p>
-                  <div className="ml-4 bg-white p-3 border-2 border-yellow-400 font-mono text-xs">
-                    <p><strong>Contract Address:</strong> 0x6B219A0fD37A89D52Df66cbD9Ef59B1A56E88e49</p>
-                    <p><strong>Token ID:</strong> (Check your transaction or start from 1)</p>
-                    <p><strong>Token Standard:</strong> ERC-721</p>
-                  </div>
-                  <p><strong>4.</strong> Make sure you're on <strong>Arbitrum Sepolia</strong> network!</p>
-                </div>
-              </div>
+            <div className="text-center py-12 bg-gray-50 border-4 border-gray-200">
+              <Trophy className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No NFTs Yet</h3>
+              <p className="text-gray-600 mb-4">
+                Complete runs to earn NFTs that capture your fitness achievements!
+              </p>
+              <Button 
+                onClick={() => navigate('/user/home')}
+                className="bg-blue-600 hover:bg-blue-700 border-2 border-blue-800"
+              >
+                Start Running
+              </Button>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -393,6 +363,7 @@ export function NFTGallery() {
           </div>
           <DialogFooter>
             <Button
+              variant="outline"
               onClick={() => setShowSellDialog(false)}
               className="border-2 border-gray-400"
             >
@@ -432,6 +403,7 @@ export function NFTGallery() {
           </div>
           <DialogFooter>
             <Button
+              variant="outline"
               onClick={() => setShowBuyDialog(false)}
               className="border-2 border-gray-400"
             >
@@ -447,22 +419,16 @@ export function NFTGallery() {
         </DialogContent>
       </Dialog>
 
-      {/* Comet View - Removed for now */}
-      {showCometView && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 border-4 border-black max-w-md w-full">
-            <h3 className="text-xl font-bold mb-4">NFT Details</h3>
-            <p>Detailed NFT view coming soon...</p>
-            <Button 
-              onClick={() => setShowCometView(false)}
-              className="mt-4 w-full"
-            >
-              Close
-            </Button>
-          </div>
+      {/* Comet View */}
+      <CometCard
+        isOpen={showCometView}
+        onClose={() => setShowCometView(false)}
+        title="NFT Details"
+      >
+        <div className="p-4">
+          <p>Detailed NFT view coming soon...</p>
         </div>
-      )}
-
+      </CometCard>
     </div>
   );
 }

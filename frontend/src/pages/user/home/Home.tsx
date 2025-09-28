@@ -11,6 +11,7 @@ import { useWallet } from "@/hooks/useWallet";
 import { useAuth } from "@/hooks/useAuth"; // <-- Strava hook
 import { useStravaStats } from "@/hooks/useStravaStats"; // <-- New Strava stats hook
 import { StravaService } from "@/services/stravaService";
+import NFTService from "@/services/nftService";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faRefresh } from "@fortawesome/free-solid-svg-icons";
 import EnhancedTomTomMap from "@/components/custom/map/EnhancedTomTomMap";
@@ -110,6 +111,52 @@ export default function Home() {
 
     checkRunningStatus();
   }, [address]);
+
+  // Handle zone capture - mint NFT directly for the displayed run
+  const handleZoneCapture = async () => {
+    if (!isConnected) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+
+    try {
+      let distance, duration, points;
+
+      if (stravaStats && stravaStats.lastActivity) {
+        // Use Strava data
+        distance = Math.round(stravaStats.lastActivity.distance * 1000); // Convert km to meters
+        duration = stravaStats.lastActivity.movingTime; // Already in seconds
+        points = Math.floor(distance / 100) + 100; // Base points + bonus
+      } else {
+        // Use static/default data
+        distance = 8500; // 8.5 km in meters
+        duration = 2550; // 42:30 in seconds
+        points = 450;
+      }
+
+      const zoneName = 'Yashobhoomi';
+      const zoneCoordinates = '28.9267,77.0667'; // Yashobhoomi Convention Centre coordinates
+
+      alert(`�‍♂️ Minting NFT for your achievement...\n\n📊 Run Details:\n• Distance: ${(distance/1000).toFixed(1)} km\n• Duration: ${Math.floor(duration/60)}:${(duration%60).toString().padStart(2,'0')}\n• Zone: ${zoneName}\n• Points: ${points}\n\n⏳ Please confirm the transaction in MetaMask...`);
+
+      const tokenId = await NFTService.mintNFTForUser(
+        distance.toString(),
+        duration.toString(),
+        zoneName,
+        zoneCoordinates,
+        points.toString()
+      );
+
+      if (tokenId) {
+        alert(`🎉 Success! Zone Captured & NFT Minted! 🏆\n\n💎 Token ID: ${tokenId}\n🎯 Zone: ${zoneName}\n📏 Distance: ${(distance/1000).toFixed(1)} km\n⏱️ Time: ${Math.floor(duration/60)}:${(duration%60).toString().padStart(2,'0')}\n🎖️ Points: ${points}\n\n🖼️ Your NFT is now available in the gallery!`);
+      } else {
+        alert('❌ NFT minting failed. Please check your wallet and try again.');
+      }
+    } catch (error: any) {
+      console.error('Zone capture failed:', error);
+      alert(`❌ Failed to capture zone: ${error?.message || 'Unknown error'}\n\nPlease check your wallet connection and try again.`);
+    }
+  };
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
@@ -366,15 +413,14 @@ export default function Home() {
             </CardContent>
             <CardFooter>
               <Button
+                onClick={handleZoneCapture}
                 variant="default"
                 className="w-full font-extrabold"
-                disabled={!isConnected || isRunning}
+                disabled={!isConnected}
               >
                 {!isConnected
-                  ? "Connect Wallet to Mint"
-                  : isRunning
-                  ? "Finish Run to Mint"
-                  : "Capture Zone: Mint NFT"}
+                  ? "Connect Wallet to Mint NFT"
+                  : "Capture Zone: Mint NFT 🎯"}
               </Button>
             </CardFooter>
           </Card>

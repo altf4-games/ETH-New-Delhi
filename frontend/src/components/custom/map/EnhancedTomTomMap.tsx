@@ -168,6 +168,22 @@ export default function TomTomMap({
         [77.2650, 28.6050],
         [77.2650, 28.6150]
       ]
+    },
+    {
+      id: '9',
+      coordinates: [77.06667, 28.92667], // Yashobhoomi Convention Centre coordinates
+      type: 'available',
+      title: 'Yashobhoomi Convention Centre Zone',
+      points: 1200,
+      distance: 15.8,
+      difficulty: 'hard',
+      polygon: [
+        [77.0650, 28.9280],
+        [77.0683, 28.9280],
+        [77.0683, 28.9253],
+        [77.0650, 28.9253],
+        [77.0650, 28.9280]
+      ]
     }
   ];
 

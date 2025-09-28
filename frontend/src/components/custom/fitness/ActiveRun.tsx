@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useFitnessRuns } from '../../../hooks/useFitnessRuns';
 import { useAuth } from '../../../hooks/useAuth';
 import { StravaService } from '../../../services/stravaService';
-import { Loader2, Timer, Target, DollarSign, CheckCircle, RefreshCw } from 'lucide-react';
+import NFTService from '../../../services/nftService';
+import { Loader2, Timer, Target, DollarSign, CheckCircle, RefreshCw, Trophy } from 'lucide-react';
 
 export const ActiveRun: React.FC = () => {
   const { activeRun, completeRun, loading } = useFitnessRuns();
@@ -122,9 +123,44 @@ export const ActiveRun: React.FC = () => {
       setActualTime('');
       setStravaDataLoaded(false);
       
-      // Show success/failure message (you could add toast notifications here)
+      // If run was successful, mint NFT
+      if (result.success) {
+        console.log('Run successful, preparing to mint NFT...');
+        
+        try {
+          // Calculate points based on distance and performance
+          const targetDistance = parseInt(activeRun.targetDistance);
+          const basePoints = Math.floor(distanceValue / 100); // 1 point per 100m
+          const performanceBonus = distanceValue >= targetDistance ? 50 : 0;
+          const totalPoints = basePoints + performanceBonus;
+          
+          // Determine zone name based on location (simplified)
+          const zoneName = 'Fitness Zone'; // You could make this dynamic based on GPS location
+          const zoneCoordinates = '28.6139,77.2090'; // Default to Delhi coordinates
+          
+          // Mint NFT directly by user
+          const tokenId = await NFTService.mintNFTForUser(
+            distanceValue.toString(),
+            timeValue.toString(),
+            zoneName,
+            zoneCoordinates,
+            totalPoints.toString()
+          );
+          
+          if (tokenId) {
+            alert(`🎉 Run completed successfully! You earned your reward and minted NFT #${tokenId}! 🏆\n\nRun Details:\n- Distance: ${(distanceValue/1000).toFixed(2)}km\n- Time: ${Math.floor(timeValue/60)}:${(timeValue%60).toString().padStart(2,'0')}\n- Points: ${totalPoints}\n- NFT Token ID: ${tokenId}\n\nYour NFT is now available in your gallery!`);
+          } else {
+            alert(`Run completed successfully! You earned your reward! 🎉\n\nRun Details:\n- Distance: ${(distanceValue/1000).toFixed(2)}km\n- Time: ${Math.floor(timeValue/60)}:${(timeValue%60).toString().padStart(2,'0')}`);
+          }
+        } catch (nftError: any) {
+          console.error('NFT minting failed:', nftError);
+          alert(`Run completed successfully! You earned your reward! 🎉\n\nRun Details:\n- Distance: ${(distanceValue/1000).toFixed(2)}km\n- Time: ${Math.floor(timeValue/60)}:${(timeValue%60).toString().padStart(2,'0')}\n\nNote: NFT minting failed: ${nftError?.message || 'Unknown error'}`);
+        }
+      } else {
+        alert(`Run completed! Better luck next time! 💪\n\nRun Details:\n- Distance: ${(distanceValue/1000).toFixed(2)}km\n- Time: ${Math.floor(timeValue/60)}:${(timeValue%60).toString().padStart(2,'0')}`);
+      }
+      
       console.log('Run completed:', result);
-      alert(`Run completed successfully! ${result.success ? 'You earned your reward!' : 'Better luck next time!'}`);
     } catch (err: any) {
       console.error('Failed to complete run:', err);
       alert(`Failed to complete run: ${err.message || 'Unknown error'}`);
