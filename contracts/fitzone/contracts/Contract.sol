@@ -312,7 +312,7 @@ contract FitZone is
     ) internal override(ERC721, ERC721Enumerable) returns (address) {
         return super._update(to, tokenId, auth);
     }
-    
+
     function _increaseBalance(
         address account,
         uint128 value

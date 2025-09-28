@@ -11,7 +11,7 @@ async function main() {
   // Deploy the contract
   const FitNFT = await ethers.getContractFactory("FitNFT");
   const fitNFT = await FitNFT.deploy();
-  
+
   await fitNFT.deployed();
 
   console.log("FitNFT deployed to:", fitNFT.address);
@@ -27,8 +27,12 @@ async function main() {
   console.log("\n=== Deployment Complete ===");
   console.log(`Contract Address: ${fitNFT.address}`);
   console.log("Update the following files with this address:");
-  console.log("1. frontend/src/services/web3Service.ts - FITNFT contract address");
-  console.log("2. backend/services/nftService.js - FITNFT_CONTRACT_ADDRESS env variable");
+  console.log(
+    "1. frontend/src/services/web3Service.ts - FITNFT contract address"
+  );
+  console.log(
+    "2. backend/services/nftService.js - FITNFT_CONTRACT_ADDRESS env variable"
+  );
 }
 
 main()

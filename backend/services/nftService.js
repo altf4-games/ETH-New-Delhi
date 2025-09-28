@@ -1,10 +1,12 @@
-import { ethers } from 'ethers';
+import { ethers } from "ethers";
 
 // Contract configuration
 const CONTRACTS = {
-  FITNFT: process.env.FITNFT_CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000",
+  FITNFT:
+    process.env.FITNFT_CONTRACT_ADDRESS ||
+    "0x0000000000000000000000000000000000000000",
   PRIVATE_KEY: process.env.NFT_MINTER_PRIVATE_KEY,
-  RPC_URL: process.env.RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc"
+  RPC_URL: process.env.RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
 };
 
 const FITNFT_ABI = [
@@ -12,7 +14,7 @@ const FITNFT_ABI = [
   "function ownerOf(uint256 tokenId) external view returns (address)",
   "function tokenURI(uint256 tokenId) external view returns (string memory)",
   "function totalSupply() external view returns (uint256)",
-  "event NFTMinted(uint256 indexed tokenId, address indexed runner, uint256 distance, uint256 duration, string zoneName, uint256 pointsEarned)"
+  "event NFTMinted(uint256 indexed tokenId, address indexed runner, uint256 distance, uint256 duration, string zoneName, uint256 pointsEarned)",
 ];
 
 class NFTService {
@@ -29,20 +31,26 @@ class NFTService {
     try {
       // Initialize provider
       this.provider = new ethers.providers.JsonRpcProvider(CONTRACTS.RPC_URL);
-      
+
       // Initialize wallet (only if private key is available)
       if (CONTRACTS.PRIVATE_KEY) {
         this.wallet = new ethers.Wallet(CONTRACTS.PRIVATE_KEY, this.provider);
-        this.contract = new ethers.Contract(CONTRACTS.FITNFT, FITNFT_ABI, this.wallet);
+        this.contract = new ethers.Contract(
+          CONTRACTS.FITNFT,
+          FITNFT_ABI,
+          this.wallet
+        );
       } else {
-        console.warn('NFT_MINTER_PRIVATE_KEY not set, NFT minting will be disabled');
+        console.warn(
+          "NFT_MINTER_PRIVATE_KEY not set, NFT minting will be disabled"
+        );
         return;
       }
 
       this.initialized = true;
-      console.log('NFT Service initialized successfully');
+      console.log("NFT Service initialized successfully");
     } catch (error) {
-      console.error('Failed to initialize NFT Service:', error);
+      console.error("Failed to initialize NFT Service:", error);
       throw error;
     }
   }
@@ -50,17 +58,17 @@ class NFTService {
   async mintNFTForRun({
     runner,
     distance,
-    duration, 
+    duration,
     zoneName,
     zoneCoordinates,
     pointsEarned,
-    timestamp
+    timestamp,
   }) {
     try {
       await this.initialize();
 
       if (!this.contract) {
-        throw new Error('NFT Service not properly initialized');
+        throw new Error("NFT Service not properly initialized");
       }
 
       // Generate metadata for the NFT
@@ -69,19 +77,19 @@ class NFTService {
         duration,
         zoneName,
         pointsEarned,
-        timestamp
+        timestamp,
       });
 
       // Upload metadata (in production, upload to IPFS)
       const metadataURI = await this.uploadMetadata(metadata);
 
-      console.log('Minting NFT for run:', {
+      console.log("Minting NFT for run:", {
         runner,
         distance,
         duration,
         zoneName,
         pointsEarned,
-        metadataURI
+        metadataURI,
       });
 
       // Mint the NFT
@@ -96,90 +104,98 @@ class NFTService {
       );
 
       const receipt = await tx.wait();
-      
+
       // Extract token ID from the mint event
-      const mintEvent = receipt.events?.find(e => e.event === 'NFTMinted');
+      const mintEvent = receipt.events?.find((e) => e.event === "NFTMinted");
       const tokenId = mintEvent ? mintEvent.args.tokenId.toString() : null;
 
-      console.log('NFT minted successfully:', {
+      console.log("NFT minted successfully:", {
         tokenId,
         transactionHash: receipt.transactionHash,
-        blockNumber: receipt.blockNumber
+        blockNumber: receipt.blockNumber,
       });
 
       return {
         success: true,
         tokenId,
         transactionHash: receipt.transactionHash,
-        blockNumber: receipt.blockNumber
+        blockNumber: receipt.blockNumber,
       };
-
     } catch (error) {
-      console.error('Error minting NFT:', error);
+      console.error("Error minting NFT:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
 
-  generateRunMetadata({ distance, duration, zoneName, pointsEarned, timestamp }) {
+  generateRunMetadata({
+    distance,
+    duration,
+    zoneName,
+    pointsEarned,
+    timestamp,
+  }) {
     const distanceKm = (distance / 1000).toFixed(2);
     const durationMinutes = Math.floor(duration / 60);
     const durationSeconds = duration % 60;
-    const pace = duration > 0 ? ((duration / 60) / (distance / 1000)).toFixed(2) : '0.00';
+    const pace =
+      duration > 0 ? (duration / 60 / (distance / 1000)).toFixed(2) : "0.00";
 
     const runDate = new Date(timestamp);
 
     return {
       name: `${zoneName} Run - ${distanceKm}km`,
-      description: `A fitness run NFT minted for completing a ${distanceKm}km run in ${zoneName}. Duration: ${durationMinutes}:${durationSeconds.toString().padStart(2, '0')}. Points earned: ${pointsEarned}.`,
+      description: `A fitness run NFT minted for completing a ${distanceKm}km run in ${zoneName}. Duration: ${durationMinutes}:${durationSeconds
+        .toString()
+        .padStart(2, "0")}. Points earned: ${pointsEarned}.`,
       image: this.generateRunVisualization(distance, duration, zoneName),
       attributes: [
         {
           trait_type: "Distance (km)",
-          value: parseFloat(distanceKm)
+          value: parseFloat(distanceKm),
         },
         {
           trait_type: "Duration (minutes)",
-          value: durationMinutes
+          value: durationMinutes,
         },
         {
           trait_type: "Zone",
-          value: zoneName
+          value: zoneName,
         },
         {
           trait_type: "Points Earned",
-          value: pointsEarned
+          value: pointsEarned,
         },
         {
           trait_type: "Average Pace (min/km)",
-          value: parseFloat(pace)
+          value: parseFloat(pace),
         },
         {
           trait_type: "Date",
-          value: runDate.toISOString().split('T')[0]
+          value: runDate.toISOString().split("T")[0],
         },
         {
           trait_type: "Month",
-          value: runDate.toLocaleString('default', { month: 'long' })
+          value: runDate.toLocaleString("default", { month: "long" }),
         },
         {
           trait_type: "Year",
-          value: runDate.getFullYear()
+          value: runDate.getFullYear(),
         },
         {
           trait_type: "Rarity",
-          value: this.calculateRarity(distance, duration, pointsEarned)
-        }
-      ]
+          value: this.calculateRarity(distance, duration, pointsEarned),
+        },
+      ],
     };
   }
 
   generateRunVisualization(distance, duration, zoneName) {
     const distanceKm = (distance / 1000).toFixed(1);
     const durationMinutes = Math.floor(duration / 60);
-    
+
     // Create SVG data URL
     const svg = `
       <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
@@ -214,53 +230,55 @@ class NFTService {
         </text>
       </svg>
     `;
-    
-    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
   }
 
   async uploadMetadata(metadata) {
     // In production, upload to IPFS
     // For now, return a data URL
     const metadataJson = JSON.stringify(metadata);
-    return `data:application/json;base64,${Buffer.from(metadataJson).toString('base64')}`;
+    return `data:application/json;base64,${Buffer.from(metadataJson).toString(
+      "base64"
+    )}`;
   }
 
   calculateRarity(distance, duration, pointsEarned) {
-    let rarity = 'Common';
-    
+    let rarity = "Common";
+
     if (distance >= 10000 && pointsEarned >= 100) {
-      rarity = 'Legendary';
+      rarity = "Legendary";
     } else if (distance >= 5000 && pointsEarned >= 50) {
-      rarity = 'Epic';
+      rarity = "Epic";
     } else if (distance >= 2000 && pointsEarned >= 25) {
-      rarity = 'Rare';
+      rarity = "Rare";
     } else if (distance >= 1000 || pointsEarned >= 10) {
-      rarity = 'Uncommon';
+      rarity = "Uncommon";
     }
-    
+
     return rarity;
   }
 
   async getNFTInfo(tokenId) {
     try {
       await this.initialize();
-      
+
       if (!this.contract) {
-        throw new Error('NFT Service not initialized');
+        throw new Error("NFT Service not initialized");
       }
 
       const [owner, tokenURI] = await Promise.all([
         this.contract.ownerOf(tokenId),
-        this.contract.tokenURI(tokenId)
+        this.contract.tokenURI(tokenId),
       ]);
 
       return {
         tokenId,
         owner,
-        tokenURI
+        tokenURI,
       };
     } catch (error) {
-      console.error('Error getting NFT info:', error);
+      console.error("Error getting NFT info:", error);
       throw error;
     }
   }
@@ -268,7 +286,7 @@ class NFTService {
   async getTotalSupply() {
     try {
       await this.initialize();
-      
+
       if (!this.contract) {
         return 0;
       }
@@ -276,7 +294,7 @@ class NFTService {
       const supply = await this.contract.totalSupply();
       return supply.toNumber();
     } catch (error) {
-      console.error('Error getting total supply:', error);
+      console.error("Error getting total supply:", error);
       return 0;
     }
   }

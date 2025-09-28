@@ -15,7 +15,7 @@ async function main() {
   if (hre.network.name !== "hardhat" && hre.network.name !== "localhost") {
     console.log("Waiting for block confirmations...");
     await fitNFT.deployTransaction.wait(6);
-    
+
     console.log("Verifying contract...");
     try {
       await hre.run("verify:verify", {
@@ -34,22 +34,24 @@ async function main() {
     contractAddress: fitNFT.address,
     blockNumber: fitNFT.deployTransaction.blockNumber,
     transactionHash: fitNFT.deployTransaction.hash,
-    deployedAt: new Date().toISOString()
+    deployedAt: new Date().toISOString(),
   };
 
   console.log("Deployment Info:", deploymentInfo);
-  
+
   // You can save this to a file if needed
-  const fs = require('fs');
+  const fs = require("fs");
   fs.writeFileSync(
-    './deployments/fitnft-deployment.json',
+    "./deployments/fitnft-deployment.json",
     JSON.stringify(deploymentInfo, null, 2)
   );
 
   console.log("✅ FitNFT deployment completed!");
   console.log(`📝 Contract address: ${fitNFT.address}`);
-  console.log("📁 Deployment info saved to ./deployments/fitnft-deployment.json");
-  
+  console.log(
+    "📁 Deployment info saved to ./deployments/fitnft-deployment.json"
+  );
+
   // Update the frontend contract address
   console.log("\n🔧 Don't forget to update the contract address in:");
   console.log("   frontend/src/services/web3Service.ts");
