@@ -53,20 +53,20 @@ const MapContainer = React.memo(() => {
         onZoneClick={handleZoneClick}
       />
 
-      <div className="absolute bottom-4 right-4 bg-white border-4 border-black p-3 text-left z-10">
-        <h4 className="font-bold uppercase text-sm mb-2">Legend</h4>
+      <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 bg-white border-2 sm:border-4 border-black p-2 sm:p-3 text-left z-10 max-w-[140px] sm:max-w-none">
+        <h4 className="font-bold uppercase text-xs sm:text-sm mb-1 sm:mb-2">Legend</h4>
         <div className="space-y-1 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-[#0ea5a4] border-2 border-black"></div>
-            <span className="font-bold">Your Zones</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-[#0ea5a4] border-1 sm:border-2 border-black flex-shrink-0"></div>
+            <span className="font-bold text-xs">Your Zones</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-[#10b981] border-2 border-black"></div>
-            <span className="font-bold">Available</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-[#10b981] border-1 sm:border-2 border-black flex-shrink-0"></div>
+            <span className="font-bold text-xs">Available</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-[#ec4899] border-2 border-black"></div>
-            <span className="font-bold">Others</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-[#ec4899] border-1 sm:border-2 border-black flex-shrink-0"></div>
+            <span className="font-bold text-xs">Others</span>
           </div>
         </div>
       </div>

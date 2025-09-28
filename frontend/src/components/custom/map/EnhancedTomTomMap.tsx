@@ -244,7 +244,14 @@ export default function TomTomMap({
       },
       center: userLocation || center,
       zoom: zoom,
-      attributionControl: false
+      attributionControl: false,
+      // Mobile-optimized settings
+      touchZoomRotate: true,
+      touchPitch: false, // Disable pitch on mobile for better UX
+      dragRotate: false, // Disable rotation for simpler interaction
+      keyboard: false, // Disable keyboard navigation on mobile
+      doubleClickZoom: true,
+      scrollZoom: true
     });
 
     // Add TomTom attribution
@@ -319,58 +326,63 @@ export default function TomTomMap({
               onZoneClick(zone);
             }
             
-            // Show popup
-            new maplibregl.Popup()
+            // Show popup with mobile-optimized content
+            new maplibregl.Popup({
+              closeButton: true,
+              closeOnClick: false,
+              maxWidth: '280px',
+              className: 'zone-popup-mobile'
+            })
               .setLngLat(e.lngLat)
               .setHTML(`
-                <div class="p-3">
-                  <h3 class="text-sm font-black uppercase mb-2">${zone.title}</h3>
-                  <div class="space-y-2 text-xs">
+                <div class="p-2 sm:p-3">
+                  <h3 class="text-xs sm:text-sm font-black uppercase mb-2 leading-tight">${zone.title}</h3>
+                  <div class="space-y-1 sm:space-y-2 text-xs">
                     <div class="flex justify-between items-center">
                       <span class="font-bold">Status:</span>
-                      <span class="px-2 py-1 rounded text-xs font-bold ${
+                      <span class="px-1 sm:px-2 py-1 rounded text-xs font-bold ${
                         zone.type === 'owned' ? 'bg-teal-100 text-teal-800' : 
                         zone.type === 'available' ? 'bg-green-100 text-green-800' : 
                         'bg-pink-100 text-pink-800'
                       }">
-                        ${zone.type === 'owned' ? '👑 Owned by you' : 
-                          zone.type === 'available' ? '🎯 Available' : 
-                          '🔒 Owned by others'}
+                        ${zone.type === 'owned' ? '👑 You' : 
+                          zone.type === 'available' ? '🎯 Open' : 
+                          '🔒 Taken'}
                       </span>
                     </div>
-                    <div class="flex justify-between">
-                      <span class="font-bold">Reward Points:</span>
+                    <div class="flex justify-between items-center">
+                      <span class="font-bold">Points:</span>
                       <span class="font-black text-yellow-600">⭐ ${zone.points}</span>
                     </div>
                     ${zone.distance !== undefined && zone.distance > 0 ? `
-                    <div class="flex justify-between">
+                    <div class="flex justify-between items-center">
                       <span class="font-bold">Distance:</span>
-                      <span class="font-black">📍 ${zone.distance}km away</span>
+                      <span class="font-black text-sm">📍 ${zone.distance}km</span>
                     </div>
                     ` : zone.distance === 0 ? `
-                    <div class="flex justify-between">
+                    <div class="flex justify-between items-center">
                       <span class="font-bold">Distance:</span>
-                      <span class="font-black text-green-600">📍 Current Location</span>
+                      <span class="font-black text-green-600 text-sm">📍 Here</span>
                     </div>
                     ` : ''}
-                    <div class="flex justify-between">
-                      <span class="font-bold">Difficulty:</span>
-                      <span class="font-black capitalize">
+                    <div class="flex justify-between items-center">
+                      <span class="font-bold">Level:</span>
+                      <span class="font-black capitalize text-sm">
                         ${zone.difficulty === 'easy' ? '🟢' : zone.difficulty === 'hard' ? '🔴' : '🟡'} ${zone.difficulty}
                       </span>
                     </div>
                     ${zone.type === 'available' ? `
-                    <button class="w-full mt-3 px-3 py-2 bg-green-600 text-white font-bold text-xs border-2 border-black hover:bg-green-700 transition-colors rounded-sm">
-                      🏃‍♂️ Start Run to Capture Zone
+                    <button class="w-full mt-2 px-2 py-2 bg-green-600 text-white font-bold text-xs border-2 border-black hover:bg-green-700 active:bg-green-800 transition-colors rounded-sm touch-manipulation">
+                      🏃‍♂️ Capture Zone
                     </button>
                     ` : zone.type === 'owned' ? `
-                    <button class="w-full mt-3 px-3 py-2 bg-teal-600 text-white font-bold text-xs border-2 border-black hover:bg-teal-700 transition-colors rounded-sm">
-                      👑 View Zone Details
+                    <button class="w-full mt-2 px-2 py-2 bg-teal-600 text-white font-bold text-xs border-2 border-black hover:bg-teal-700 active:bg-teal-800 transition-colors rounded-sm touch-manipulation">
+                      👑 View Details
                     </button>
                     ` : `
-                    <div class="mt-3 px-3 py-2 bg-gray-200 text-gray-600 font-bold text-xs border-2 border-black rounded-sm text-center">
-                      🔒 Challenge owner to compete
-                    </div>
+                    <button class="w-full mt-2 px-2 py-2 bg-gray-600 text-white font-bold text-xs border-2 border-black cursor-not-allowed rounded-sm" disabled>
+                      🔒 Unavailable
+                    </button>
                     `}
                   </div>
                 </div>
@@ -461,7 +473,13 @@ export default function TomTomMap({
     <div 
       ref={mapContainer} 
       className={`tomtom-map ${className}`}
-      style={{ width, height }}
+      style={{ 
+        width, 
+        height,
+        // Ensure proper mobile viewport handling
+        minHeight: window.innerWidth <= 768 ? '400px' : height,
+        touchAction: 'pan-x pan-y'
+      }}
     />
   );
 }
