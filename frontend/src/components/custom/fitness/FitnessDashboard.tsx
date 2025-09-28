@@ -17,7 +17,7 @@ export const FitnessDashboard: React.FC = () => {
   });
 
   const totalStaked = runHistory.reduce((sum, run) => sum + parseFloat(run.stakeAmount), 0);
-  const totalEarned = successfulRuns.length * 0.1; // Approximate bonus earnings
+  // const totalEarned = successfulRuns.length * 0.1; // Approximate bonus earnings
 
   const formatAddress = (address: string): string => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;

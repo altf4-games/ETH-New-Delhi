@@ -8,7 +8,7 @@ import { useFitnessRuns } from '../../../hooks/useFitnessRuns';
 import { useAuth } from '../../../hooks/useAuth';
 import { StravaService } from '../../../services/stravaService';
 import NFTService from '../../../services/nftService';
-import { Loader2, Timer, Target, DollarSign, CheckCircle, RefreshCw, Trophy } from 'lucide-react';
+import { Loader2, Timer, Target, DollarSign, CheckCircle, RefreshCw } from 'lucide-react';
 
 export const ActiveRun: React.FC = () => {
   const { activeRun, completeRun, loading } = useFitnessRuns();

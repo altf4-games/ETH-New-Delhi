@@ -1,12 +1,5 @@
 import { ethers } from 'ethers';
 
-// Extend window interface for ethereum
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
-
 // Contract addresses (update these after deployment)
 export const CONTRACTS = {
   FITZONE: "0xDF850D656526925F3BC148dB4C66a46509FCde64", // Your deployed FitStaking contract
@@ -121,7 +114,7 @@ class Web3Service {
   private userAddress: string | null = null;
   private lastCallTime: number = 0;
   private minCallInterval: number = 2000; // Increased to 2 seconds between calls
-  private retryCount: number = 0;
+  // private retryCount: number = 0; // Unused for now
   private maxRetries: number = 3;
 
   constructor() {}

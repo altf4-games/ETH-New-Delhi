@@ -194,7 +194,7 @@ export function NFTGallery() {
         <CardFooter className="p-4 pt-0">
           <div className="grid grid-cols-2 gap-2 w-full">
             <Button
-              variant="outline"
+              variant="neutral"
               size="sm"
               onClick={() => setShowCometView(true)}
               className="border-2 border-gray-600"
@@ -363,7 +363,7 @@ export function NFTGallery() {
           </div>
           <DialogFooter>
             <Button
-              variant="outline"
+              variant="neutral"
               onClick={() => setShowSellDialog(false)}
               className="border-2 border-gray-400"
             >
@@ -403,7 +403,7 @@ export function NFTGallery() {
           </div>
           <DialogFooter>
             <Button
-              variant="outline"
+              variant="neutral"
               onClick={() => setShowBuyDialog(false)}
               className="border-2 border-gray-400"
             >
@@ -420,15 +420,17 @@ export function NFTGallery() {
       </Dialog>
 
       {/* Comet View */}
-      <CometCard
-        isOpen={showCometView}
-        onClose={() => setShowCometView(false)}
-        title="NFT Details"
-      >
-        <div className="p-4">
-          <p>Detailed NFT view coming soon...</p>
-        </div>
-      </CometCard>
+      {showCometView && (
+        <CometCard className="fixed inset-0 z-50 bg-white p-8">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold">NFT Details</h3>
+            <Button onClick={() => setShowCometView(false)}>Close</Button>
+          </div>
+          <div className="p-4">
+            <p>Detailed NFT view coming soon...</p>
+          </div>
+        </CometCard>
+      )}
     </div>
   );
 }
