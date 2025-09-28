@@ -3,13 +3,19 @@ pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title FitStaking
  * @dev Simple staking contract for fitness runs
- * Users stake ETH before starting a run and get rewards/penalties based on completion
+ * Users stake PYUSD before starting a run and get rewards/penalties based on completion
  */
 contract FitStaking is ReentrancyGuard, Ownable {
+    using SafeERC20 for IERC20;
+
+    // PYUSD token contract address
+    IERC20 public immutable pyusdToken;
     struct RunStake {
         address runner;
         uint256 stakeAmount;
@@ -34,8 +40,8 @@ contract FitStaking is ReentrancyGuard, Ownable {
     uint256 public constant SUCCESS_REWARD = 110; // 10% bonus
     uint256 public constant FAILURE_PENALTY = 70; // 30% loss
 
-    // Minimum stake amount (0.001 ETH)
-    uint256 public constant MIN_STAKE = 0.001 ether;
+    // Minimum stake amount (1 PYUSD - 6 decimals)
+    uint256 public constant MIN_STAKE = 1000000; // 1 PYUSD
 
     event RunStarted(
         uint256 indexed runId,
@@ -54,26 +60,34 @@ contract FitStaking is ReentrancyGuard, Ownable {
         uint256 reward
     );
 
-    constructor() Ownable(msg.sender) {}
+    constructor(address _pyusdToken) Ownable(msg.sender) {
+        require(_pyusdToken != address(0), "Invalid PYUSD token address");
+        pyusdToken = IERC20(_pyusdToken);
+    }
 
     /**
      * @dev Start a new run with stake
      * @param targetDistance Target distance in meters
      * @param estimatedTime Estimated time in seconds
+     * @param stakeAmount Amount of PYUSD to stake
      */
     function startRun(
         uint256 targetDistance,
-        uint256 estimatedTime
-    ) external payable nonReentrant {
-        require(msg.value >= MIN_STAKE, "Stake too low");
+        uint256 estimatedTime,
+        uint256 stakeAmount
+    ) external nonReentrant {
+        require(stakeAmount >= MIN_STAKE, "Stake too low");
         require(targetDistance > 0, "Invalid distance");
         require(estimatedTime > 0, "Invalid time");
+        
+        // Transfer PYUSD stake from user to contract
+        pyusdToken.safeTransferFrom(msg.sender, address(this), stakeAmount);
 
         uint256 runId = nextRunId++;
 
         runStakes[runId] = RunStake({
             runner: msg.sender,
-            stakeAmount: msg.value,
+            stakeAmount: stakeAmount,
             targetDistance: targetDistance,
             estimatedTime: estimatedTime,
             startTime: block.timestamp,
@@ -89,7 +103,7 @@ contract FitStaking is ReentrancyGuard, Ownable {
         emit RunStarted(
             runId,
             msg.sender,
-            msg.value,
+            stakeAmount,
             targetDistance,
             estimatedTime
         );
@@ -139,9 +153,9 @@ contract FitStaking is ReentrancyGuard, Ownable {
 
         run.claimed = true;
 
-        // Transfer reward to runner
+        // Transfer PYUSD reward to runner
         if (reward > 0) {
-            payable(msg.sender).transfer(reward);
+            pyusdToken.safeTransfer(msg.sender, reward);
         }
 
         emit RunCompleted(
@@ -212,9 +226,9 @@ contract FitStaking is ReentrancyGuard, Ownable {
      * @dev Emergency withdrawal by owner
      */
     function emergencyWithdraw() external onlyOwner {
-        uint256 balance = address(this).balance;
+        uint256 balance = pyusdToken.balanceOf(address(this));
         require(balance > 0, "No funds to withdraw");
-        payable(owner()).transfer(balance);
+        pyusdToken.safeTransfer(owner(), balance);
     }
 
     /**
@@ -236,7 +250,7 @@ contract FitStaking is ReentrancyGuard, Ownable {
             totalStaked += runStakes[i].stakeAmount;
         }
 
-        contractBalance = address(this).balance;
+        contractBalance = pyusdToken.balanceOf(address(this));
         totalRewards = totalStaked > contractBalance
             ? totalStaked - contractBalance
             : 0;

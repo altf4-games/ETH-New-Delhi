@@ -1,6 +1,7 @@
 require("@matterlabs/hardhat-zksync-solc");
 require("@matterlabs/hardhat-zksync-verify");
-
+require("@nomiclabs/hardhat-ethers");
+require("@openzeppelin/hardhat-upgrades");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -14,6 +15,20 @@ module.exports = {
     },
   },
   networks: {
+    // Arbitrum Sepolia configuration
+    arbitrumSepolia: {
+      url: "https://sepolia-rollup.arbitrum.io/rpc",
+      chainId: 421614,
+      gasPrice: "auto",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    },
+    // Ethereum Sepolia for PYUSD
+    sepolia: {
+      url: "https://rpc.sepolia.org",
+      chainId: 11155111,
+      gasPrice: "auto", 
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    },
     zkSyncSepoliaTestnet: {
       url: "https://sepolia.era.zksync.dev",
       ethNetwork: "sepolia",
@@ -46,4 +61,9 @@ module.exports = {
       },
     },
   },
+  // PYUSD contract addresses for different networks
+  pyusdAddresses: {
+    sepolia: "0x9A7b2c3c853b6c1D2A8F3eF3F3F6b6c8FB2e4A7D", // Replace with actual PYUSD contract address on Sepolia
+    arbitrumSepolia: "0x9A7b2c3c853b6c1D2A8F3eF3F3F6b6c8FB2e4A7D", // Replace with actual PYUSD contract address on Arbitrum Sepolia (if available)
+  }
 };

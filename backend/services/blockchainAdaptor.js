@@ -1,22 +1,68 @@
 import { ethers } from 'ethers';
 
-// Mock blockchain adapter for demo purposes
-// In production, this would interact with actual smart contracts
+// Blockchain adapter for PYUSD-based smart contracts
+// Supports both Arbitrum Sepolia (for contracts) and Ethereum Sepolia (for PYUSD)
 
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || 'https://polygon-mumbai.g.alchemy.com/v2/demo');
-const contractAddress = process.env.CONTRACT_ADDRESS || '0x1234567890123456789012345678901234567890';
+// Network configurations
+const NETWORKS = {
+  arbitrumSepolia: {
+    rpcUrl: process.env.ARBITRUM_SEPOLIA_RPC || 'https://sepolia-rollup.arbitrum.io/rpc',
+    chainId: 421614,
+    pyusdAddress: process.env.PYUSD_ARBITRUM_SEPOLIA || '0x9A7b2c3c853b6c1D2A8F3eF3F3F6b6c8FB2e4A7D', // Replace with actual
+  },
+  sepolia: {
+    rpcUrl: process.env.SEPOLIA_RPC || 'https://rpc.sepolia.org',
+    chainId: 11155111,
+    pyusdAddress: process.env.PYUSD_SEPOLIA || '0x9A7b2c3c853b6c1D2A8F3eF3F3F6b6c8FB2e4A7D', // Replace with actual
+  }
+};
 
-// Mock ABI for FitZone contract
+const arbitrumProvider = new ethers.JsonRpcProvider(NETWORKS.arbitrumSepolia.rpcUrl);
+const sepoliaProvider = new ethers.JsonRpcProvider(NETWORKS.sepolia.rpcUrl);
+
+// Contract addresses (update after deployment)
+const contractAddress = process.env.FITZONE_CONTRACT_ADDRESS || '0x1234567890123456789012345678901234567890';
+
+// Contract ABI for FitZone contract (updated for PYUSD)
 const contractABI = [
-  'function claimZone(string calldata h3Index, uint256 baseScore) external payable',
+  'function claimZone(string calldata h3Index, uint256 baseScore) external',
   'function computeCurrentPower(uint256 score, uint256 lastCapturedAt) external view returns (uint256)',
   'function zones(uint256 tokenId) external view returns (string memory h3, uint256 lastCapturedAt, uint256 captureScore)',
   'function h3ToToken(string calldata h3Index) external view returns (uint256)',
   'function ownerOf(uint256 tokenId) external view returns (address)',
+  'function captureFee() external view returns (uint256)',
+  'function pyusdToken() external view returns (address)',
   'event ZoneCaptured(uint256 indexed tokenId, string indexed h3Index, address indexed newOwner, uint256 baseScore)'
 ];
 
-export async function mintZoneNFT(userId, h3Index, baseScore) {
+// ERC20 ABI for PYUSD operations
+const erc20ABI = [
+  'function balanceOf(address owner) external view returns (uint256)',
+  'function transfer(address to, uint256 amount) external returns (bool)',
+  'function transferFrom(address from, address to, uint256 amount) external returns (bool)',
+  'function approve(address spender, uint256 amount) external returns (bool)',
+  'function allowance(address owner, address spender) external view returns (uint256)',
+  'function decimals() external view returns (uint8)',
+];
+
+// Helper function to get PYUSD balance
+export async function getPyusdBalance(userAddress, network = 'arbitrumSepolia') {
+  try {
+    const provider = network === 'sepolia' ? sepoliaProvider : arbitrumProvider;
+    const pyusdAddress = NETWORKS[network].pyusdAddress;
+    
+    const pyusdContract = new ethers.Contract(pyusdAddress, erc20ABI, provider);
+    const balance = await pyusdContract.balanceOf(userAddress);
+    
+    // PYUSD has 6 decimals
+    return ethers.formatUnits(balance, 6);
+  } catch (error) {
+    console.error('Error getting PYUSD balance:', error);
+    throw new Error(`Failed to get PYUSD balance: ${error.message}`);
+  }
+}
+
+export async function mintZoneNFT(userId, h3Index, baseScore, userAddress = null) {
   try {
     // For demo purposes, return mock transaction data
     // In production, this would interact with the actual smart contract
@@ -25,13 +71,31 @@ export async function mintZoneNFT(userId, h3Index, baseScore) {
     const mockTokenId = Math.floor(Math.random() * 10000) + 1;
     const mockGasUsed = 85000 + Math.floor(Math.random() * 20000);
     
+    // Calculate PYUSD fee (1 PYUSD = 1,000,000 units with 6 decimals)
+    const captureFeeInPyusd = 1000000; // 1 PYUSD
+    
     console.log('Minting Zone NFT:', {
       userId,
       h3Index,
       baseScore,
       contractAddress,
-      estimatedGas: mockGasUsed
+      estimatedGas: mockGasUsed,
+      captureFeeInPyusd: ethers.formatUnits(captureFeeInPyusd, 6) + ' PYUSD'
     });
+    
+    // Check user's PYUSD balance (if userAddress provided)
+    if (userAddress) {
+      try {
+        const balance = await getPyusdBalance(userAddress);
+        console.log(`User PYUSD balance: ${balance} PYUSD`);
+        
+        if (parseFloat(balance) < 1) {
+          throw new Error('Insufficient PYUSD balance for zone capture fee');
+        }
+      } catch (balanceError) {
+        console.warn('Could not verify PYUSD balance:', balanceError.message);
+      }
+    }
     
     // Simulate blockchain delay
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -44,7 +108,9 @@ export async function mintZoneNFT(userId, h3Index, baseScore) {
       gasUsed: mockGasUsed,
       blockNumber: 45234567 + Math.floor(Math.random() * 1000),
       confirmations: 1,
-      mintedAt: new Date().toISOString()
+      mintedAt: new Date().toISOString(),
+      paymentToken: 'PYUSD',
+      feeAmount: ethers.formatUnits(captureFeeInPyusd, 6)
     };
     
   } catch (error) {

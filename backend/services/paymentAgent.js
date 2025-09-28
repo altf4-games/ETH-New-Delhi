@@ -3,8 +3,28 @@ import { createAgentWallet } from './blockchainAdapter.js';
 
 const agentWallet = createAgentWallet();
 
+// PYUSD token configuration
+const PYUSD_CONFIG = {
+  arbitrumSepolia: {
+    address: process.env.PYUSD_ARBITRUM_SEPOLIA || '0x9A7b2c3c853b6c1D2A8F3eF3F3F6b6c8FB2e4A7D',
+    decimals: 6
+  },
+  sepolia: {
+    address: process.env.PYUSD_SEPOLIA || '0x9A7b2c3c853b6c1D2A8F3eF3F3F6b6c8FB2e4A7D',
+    decimals: 6
+  }
+};
+
+// ERC20 ABI for PYUSD operations
+const erc20ABI = [
+  'function transfer(address to, uint256 amount) external returns (bool)',
+  'function balanceOf(address owner) external view returns (uint256)',
+  'function decimals() external view returns (uint8)',
+  'function symbol() external view returns (string)',
+];
+
 export async function distributeReward(rewardData) {
-  const { type, recipientId, amount, metadata } = rewardData;
+  const { type, recipientId, amount, metadata, network = 'arbitrumSepolia' } = rewardData;
   
   try {
     // Generate unique reward ID
@@ -13,44 +33,46 @@ export async function distributeReward(rewardData) {
     // Mock recipient address - in production, get from user profile
     const recipientAddress = `0x${Math.random().toString(16).padStart(40, '0')}`;
     
-    console.log('Processing reward distribution:', {
+    console.log('Processing PYUSD reward distribution:', {
       rewardId,
       type,
       recipientId,
       recipientAddress,
       amount,
-      metadata
+      metadata,
+      network
     });
     
-    // Convert amount to wei if needed
-    const amountWei = typeof amount === 'string' ? 
-      ethers.parseEther(amount) : 
-      BigInt(Math.floor(amount * 1e18));
-    
-    // Validate agent wallet has sufficient balance
-    const balance = await agentWallet.provider.getBalance(agentWallet.address);
-    if (balance < amountWei) {
-      throw new Error(`Insufficient agent wallet balance. Required: ${amountWei}, Available: ${balance}`);
+    // Get PYUSD configuration for network
+    const pyusdConfig = PYUSD_CONFIG[network];
+    if (!pyusdConfig) {
+      throw new Error(`PYUSD not configured for network: ${network}`);
     }
     
-    // Create transaction
-    const tx = {
-      to: recipientAddress,
-      value: amountWei,
-      gasLimit: 21000,
-      gasPrice: ethers.parseUnits('20', 'gwei')
-    };
+    // Convert amount to token units (6 decimals for PYUSD)
+    const amountTokens = ethers.parseUnits(amount.toString(), pyusdConfig.decimals);
+    
+    // Create PYUSD contract instance
+    const pyusdContract = new ethers.Contract(pyusdConfig.address, erc20ABI, agentWallet);
+    
+    // Validate agent wallet has sufficient PYUSD balance
+    const balance = await pyusdContract.balanceOf(agentWallet.address);
+    if (balance < amountTokens) {
+      const balanceFormatted = ethers.formatUnits(balance, pyusdConfig.decimals);
+      const requiredFormatted = ethers.formatUnits(amountTokens, pyusdConfig.decimals);
+      throw new Error(`Insufficient agent wallet PYUSD balance. Required: ${requiredFormatted}, Available: ${balanceFormatted}`);
+    }
     
     // For demo, simulate transaction without actually sending
     const mockTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
     
-    console.log('Reward transaction prepared:', {
+    console.log('PYUSD reward transaction prepared:', {
       rewardId,
       transactionHash: mockTxHash,
       to: recipientAddress,
-      value: amountWei.toString(),
-      gasLimit: tx.gasLimit,
-      gasPrice: tx.gasPrice.toString()
+      tokenAmount: ethers.formatUnits(amountTokens, pyusdConfig.decimals) + ' PYUSD',
+      tokenAddress: pyusdConfig.address,
+      network
     });
     
     // Simulate blockchain processing time

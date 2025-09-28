@@ -5,13 +5,20 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title FitNFT
- * @dev NFT contract for fitness runs with marketplace functionality
+ * @dev NFT contract for fitness runs with marketplace functionality using PYUSD
  * NFTs are minted when users complete runs and contain run data
  */
 contract FitNFT is ERC721, ERC721URIStorage, ReentrancyGuard, Ownable {
+    using SafeERC20 for IERC20;
+
+    // PYUSD token contract address
+    IERC20 public immutable pyusdToken;
+    
     uint256 private _nextTokenId = 1;
 
     struct RunData {
@@ -68,7 +75,10 @@ contract FitNFT is ERC721, ERC721URIStorage, ReentrancyGuard, Ownable {
 
     event ListingCancelled(uint256 indexed tokenId, address indexed seller);
 
-    constructor() ERC721("FitNFT", "FNFT") Ownable(msg.sender) {}
+    constructor(address _pyusdToken) ERC721("FitNFT", "FNFT") Ownable(msg.sender) {
+        require(_pyusdToken != address(0), "Invalid PYUSD token address");
+        pyusdToken = IERC20(_pyusdToken);
+    }
 
     /**
      * @dev Mint NFT for completed run
@@ -150,14 +160,17 @@ contract FitNFT is ERC721, ERC721URIStorage, ReentrancyGuard, Ownable {
     /**
      * @dev Buy NFT from marketplace
      */
-    function buyNFT(uint256 tokenId) external payable nonReentrant {
+    function buyNFT(uint256 tokenId, uint256 paymentAmount) external nonReentrant {
         MarketListing storage listing = marketListings[tokenId];
         require(listing.active, "Not listed for sale");
-        require(msg.value >= listing.price, "Insufficient payment");
+        require(paymentAmount >= listing.price, "Insufficient payment");
         require(msg.sender != listing.seller, "Cannot buy own NFT");
 
         address seller = listing.seller;
         uint256 price = listing.price;
+
+        // Transfer PYUSD from buyer to contract
+        pyusdToken.safeTransferFrom(msg.sender, address(this), paymentAmount);
 
         // Calculate fees
         uint256 platformFee = (price * PLATFORM_FEE) / BASIS_POINTS;
@@ -176,13 +189,13 @@ contract FitNFT is ERC721, ERC721URIStorage, ReentrancyGuard, Ownable {
         _removeFromUserNFTs(seller, tokenId);
         userNFTs[msg.sender].push(tokenId);
 
-        // Transfer payments
-        payable(seller).transfer(sellerAmount);
-        payable(owner()).transfer(platformFee);
+        // Transfer PYUSD payments
+        pyusdToken.safeTransfer(seller, sellerAmount);
+        pyusdToken.safeTransfer(owner(), platformFee);
 
         // Refund excess payment
-        if (msg.value > price) {
-            payable(msg.sender).transfer(msg.value - price);
+        if (paymentAmount > price) {
+            pyusdToken.safeTransfer(msg.sender, paymentAmount - price);
         }
 
         emit NFTSold(tokenId, seller, msg.sender, price);
@@ -319,10 +332,13 @@ contract FitNFT is ERC721, ERC721URIStorage, ReentrancyGuard, Ownable {
     }
 
     /**
-     * @dev Withdraw contract balance (platform fees)
+     * @dev Withdraw contract balance (platform fees in PYUSD)
      */
     function withdraw() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
+        uint256 balance = pyusdToken.balanceOf(address(this));
+        if (balance > 0) {
+            pyusdToken.safeTransfer(owner(), balance);
+        }
     }
 
     /**

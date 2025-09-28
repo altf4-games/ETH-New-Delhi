@@ -7,31 +7,63 @@ declare global {
   }
 }
 
-// Contract addresses (update these after deployment)
-export const CONTRACTS = {
-  FITZONE: "0xDF850D656526925F3BC148dB4C66a46509FCde64", // Your deployed FitStaking contract
-  FITSTAKING: "0xDF850D656526925F3BC148dB4C66a46509FCde64", // Same contract for now
-  FITNFT: "0x6B219A0fD37A89D52Df66cbD9Ef59B1A56E88e49", // Deployed NFT contract
+// Network configurations
+export const NETWORKS = {
+  arbitrumSepolia: {
+    chainId: 421614,
+    name: 'Arbitrum Sepolia',
+    rpcUrl: 'https://sepolia-rollup.arbitrum.io/rpc',
+    explorerUrl: 'https://sepolia.arbiscan.io/',
+    pyusdAddress: '0x9A7b2c3c853b6c1D2A8F3eF3F3F6b6c8FB2e4A7D', // Replace with actual PYUSD address
+  },
+  sepolia: {
+    chainId: 11155111,
+    name: 'Ethereum Sepolia',
+    rpcUrl: 'https://rpc.sepolia.org',
+    explorerUrl: 'https://sepolia.etherscan.io/',
+    pyusdAddress: '0x9A7b2c3c853b6c1D2A8F3eF3F3F6b6c8FB2e4A7D', // Replace with actual PYUSD address
+  },
 };
 
-// Contract ABIs (simplified for key functions)
+// Contract addresses (update these after deployment)
+export const CONTRACTS = {
+  FITZONE: "0xDF850D656526925F3BC148dB4C66a46509FCde64", // Update with new deployed address
+  FITSTAKING: "0xDF850D656526925F3BC148dB4C66a46509FCde64", // Update with new deployed address
+  FITNFT: "0x6B219A0fD37A89D52Df66cbD9Ef59B1A56E88e49", // Update with new deployed address
+};
+
+// ERC20 ABI for PYUSD token interactions
+export const ERC20_ABI = [
+  "function balanceOf(address owner) external view returns (uint256)",
+  "function transfer(address to, uint256 amount) external returns (bool)",
+  "function transferFrom(address from, address to, uint256 amount) external returns (bool)",
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function allowance(address owner, address spender) external view returns (uint256)",
+  "function decimals() external view returns (uint8)",
+  "function symbol() external view returns (string)",
+  "function name() external view returns (string)",
+];
+
+// Contract ABIs (updated for PYUSD)
 export const FITZONE_ABI = [
-  "function claimZone(string calldata h3Index, uint256 baseScore) external payable",
+  "function claimZone(string calldata h3Index, uint256 baseScore) external",
   "function getZoneByH3(string calldata h3Index) external view returns (uint256 tokenId, address currentOwner, uint256 currentPower, uint256 originalScore, uint256 lastCapturedAt, address originalCapturer, uint256 totalCaptures)",
   "function canCaptureZone(string calldata h3Index, uint256 challengeScore) external view returns (bool canCapture, uint256 requiredScore, uint256 currentPower)",
   "function getOwnedZones(address owner) external view returns (uint256[] memory tokenIds)",
   "function captureFee() external view returns (uint256)",
+  "function pyusdToken() external view returns (address)",
   "event ZoneCaptured(uint256 indexed tokenId, string indexed h3Index, address indexed newOwner, uint256 captureScore, uint256 timestamp)"
 ];
 
 export const FITSTAKING_ABI = [
-  "function startRun(uint256 targetDistance, uint256 estimatedTime) external payable",
+  "function startRun(uint256 targetDistance, uint256 estimatedTime, uint256 stakeAmount) external",
   "function completeRun(uint256 runId, uint256 actualDistance, uint256 actualTime) external",
   "function calculateSuggestedStake(uint256 distanceInMeters) external pure returns (uint256 suggestedStake)",
   "function getActiveRun(address user) external view returns (uint256 runId)",
   "function getRun(uint256 runId) external view returns (tuple(address runner, uint256 stakeAmount, uint256 targetDistance, uint256 estimatedTime, uint256 startTime, uint256 endTime, bool completed, bool claimed, uint256 actualDistance, uint256 actualTime))",
   "function getUserRuns(address user) external view returns (uint256[] memory)",
   "function MIN_STAKE() external view returns (uint256)",
+  "function pyusdToken() external view returns (address)",
   "event RunStarted(uint256 indexed runId, address indexed runner, uint256 stakeAmount, uint256 targetDistance, uint256 estimatedTime)",
   "event RunCompleted(uint256 indexed runId, address indexed runner, bool success, uint256 actualDistance, uint256 actualTime, uint256 reward)"
 ];
@@ -39,7 +71,7 @@ export const FITSTAKING_ABI = [
 export const FITNFT_ABI = [
   "function mintRunNFT(address runner, uint256 distance, uint256 duration, string memory zoneName, string memory zoneCoordinates, uint256 pointsEarned, string memory metadataURI) external returns (uint256)",
   "function listNFT(uint256 tokenId, uint256 price) external",
-  "function buyNFT(uint256 tokenId) external payable",
+  "function buyNFT(uint256 tokenId, uint256 paymentAmount) external",
   "function cancelListing(uint256 tokenId) external",
   "function updatePrice(uint256 tokenId, uint256 newPrice) external",
   "function getListedNFTs() external view returns (tuple(uint256 tokenId, address seller, uint256 price, bool active, uint256 listedAt)[] memory)",
@@ -48,6 +80,7 @@ export const FITNFT_ABI = [
   "function ownerOf(uint256 tokenId) external view returns (address)",
   "function tokenURI(uint256 tokenId) external view returns (string memory)",
   "function totalSupply() external view returns (uint256)",
+  "function pyusdToken() external view returns (address)",
   "event NFTMinted(uint256 indexed tokenId, address indexed runner, uint256 distance, uint256 duration, string zoneName, uint256 pointsEarned)",
   "event NFTListed(uint256 indexed tokenId, address indexed seller, uint256 price)",
   "event NFTSold(uint256 indexed tokenId, address indexed seller, address indexed buyer, uint256 price)",
@@ -71,6 +104,7 @@ export const NETWORKS = {
       symbol: "ETH",
       decimals: 18,
     },
+    pyusdAddress: "0x9A7b2c3c853b6c1D2A8F3eF3F3F6b6c8FB2e4A7D", // Replace with actual PYUSD address
   },
   ZKSYNC_SEPOLIA: {
     chainId: 300,
@@ -83,6 +117,7 @@ export const NETWORKS = {
       symbol: "ETH",
       decimals: 18,
     },
+    pyusdAddress: "0x9A7b2c3c853b6c1D2A8F3eF3F3F6b6c8FB2e4A7D", // Replace with actual PYUSD address
   },
   ZKSYNC_MAINNET: {
     chainId: 324,
@@ -95,6 +130,7 @@ export const NETWORKS = {
       symbol: "ETH",
       decimals: 18,
     },
+    pyusdAddress: "0x0", // Not available on mainnet yet
   },
 };
 
@@ -241,6 +277,82 @@ class Web3Service {
     }
   }
 
+  // Get current network's PYUSD token address
+  private getPyusdTokenAddress(): string {
+    const network = NETWORKS.ARBITRUM_SEPOLIA; // Default to Arbitrum Sepolia
+    return network.pyusdAddress;
+  }
+
+  // Get PYUSD token contract
+  private getPyusdContract(): ethers.Contract {
+    const pyusdAddress = this.getPyusdTokenAddress();
+    if (!this.signer) throw new Error('No signer available');
+    return new ethers.Contract(pyusdAddress, ERC20_ABI, this.signer);
+  }
+
+  // Get PYUSD balance for user
+  async getPyusdBalance(userAddress?: string): Promise<string> {
+    try {
+      const pyusdContract = this.getPyusdContract();
+      const address = userAddress || this.userAddress;
+      if (!address) throw new Error('No user address available');
+
+      const balance = await pyusdContract.balanceOf(address);
+      return ethers.utils.formatUnits(balance, 6); // PYUSD has 6 decimals
+    } catch (error) {
+      console.error('Error getting PYUSD balance:', error);
+      return '0';
+    }
+  }
+
+  // Check PYUSD allowance
+  async getPyusdAllowance(spenderAddress: string, userAddress?: string): Promise<string> {
+    try {
+      const pyusdContract = this.getPyusdContract();
+      const address = userAddress || this.userAddress;
+      if (!address) throw new Error('No user address available');
+
+      const allowance = await pyusdContract.allowance(address, spenderAddress);
+      return ethers.utils.formatUnits(allowance, 6);
+    } catch (error) {
+      console.error('Error getting PYUSD allowance:', error);
+      return '0';
+    }
+  }
+
+  // Approve PYUSD spending
+  async approvePyusd(spenderAddress: string, amount: string): Promise<boolean> {
+    try {
+      const pyusdContract = this.getPyusdContract();
+      const amountWei = ethers.utils.parseUnits(amount, 6);
+      
+      const tx = await pyusdContract.approve(spenderAddress, amountWei);
+      console.log('PYUSD approval transaction:', tx.hash);
+      
+      await tx.wait();
+      console.log('PYUSD approval confirmed');
+      return true;
+    } catch (error) {
+      console.error('Error approving PYUSD:', error);
+      return false;
+    }
+  }
+
+  // Helper to ensure PYUSD approval before contract interaction
+  private async ensurePyusdApproval(contractAddress: string, amount: string): Promise<void> {
+    const currentAllowance = await this.getPyusdAllowance(contractAddress);
+    const requiredAmount = parseFloat(amount);
+    const currentAllowanceFloat = parseFloat(currentAllowance);
+
+    if (currentAllowanceFloat < requiredAmount) {
+      console.log(`Insufficient PYUSD allowance. Current: ${currentAllowance}, Required: ${amount}`);
+      const approved = await this.approvePyusd(contractAddress, amount);
+      if (!approved) {
+        throw new Error('Failed to approve PYUSD spending');
+      }
+    }
+  }
+
   // Start a new fitness run with staking
   async startFitnessRun(distanceMeters: number, estimatedTimeSeconds: number) {
     if (!this.contracts.fitStaking) {
@@ -261,15 +373,19 @@ class Web3Service {
         return await this.contracts.fitStaking.calculateSuggestedStake(distanceMeters);
       }, 'calculateSuggestedStake');
       
-      console.log('Starting run with stake:', ethers.utils.formatEther(suggestedStake));
+      const stakeAmountFormatted = ethers.utils.formatUnits(suggestedStake, 6); // PYUSD has 6 decimals
+      console.log('Starting run with PYUSD stake:', stakeAmountFormatted);
       
-      // Start the run with retry
+      // Ensure PYUSD approval before staking
+      await this.ensurePyusdApproval(this.contracts.fitStaking.address, stakeAmountFormatted);
+      
+      // Start the run with retry (no ETH value needed, just PYUSD approval)
       const tx = await this.retryWithBackoff(async () => {
         return await this.contracts.fitStaking.startRun(
           distanceMeters,
           estimatedTimeSeconds,
+          suggestedStake,
           { 
-            value: suggestedStake,
             gasLimit: 300000 // Set explicit gas limit to avoid estimation issues
           }
         );
@@ -609,16 +725,19 @@ class Web3Service {
   }
 
   // Buy NFT from marketplace
-  async buyNFT(tokenId: string, priceInEth: string): Promise<boolean> {
+  async buyNFT(tokenId: string, priceInPyusd: string): Promise<boolean> {
     if (!this.contracts.fitNFT || !this.signer) {
       throw new Error('Contract or signer not initialized');
     }
 
     try {
-      const priceInWei = ethers.utils.parseEther(priceInEth);
+      const priceInTokens = ethers.utils.parseUnits(priceInPyusd, 6); // PYUSD has 6 decimals
       const contractWithSigner = this.contracts.fitNFT.connect(this.signer);
       
-      const tx = await contractWithSigner.buyNFT(tokenId, { value: priceInWei });
+      // Ensure PYUSD approval before purchase
+      await this.ensurePyusdApproval(this.contracts.fitNFT.address, priceInPyusd);
+      
+      const tx = await contractWithSigner.buyNFT(tokenId, priceInTokens);
       await tx.wait();
       
       return true;

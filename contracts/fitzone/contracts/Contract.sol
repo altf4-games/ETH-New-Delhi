@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title FitZone
@@ -20,6 +22,10 @@ contract FitZone is
     ReentrancyGuard,
     Pausable
 {
+    using SafeERC20 for IERC20;
+
+    // PYUSD token contract address
+    IERC20 public immutable pyusdToken;
     struct ZoneInfo {
         string h3Index; // H3 geographical index
         uint256 lastCapturedAt; // Block timestamp of last capture
@@ -47,8 +53,8 @@ contract FitZone is
     // Minimum score required to capture any zone
     uint256 public minCaptureScore = 50;
 
-    // Fee for capturing a zone (in wei)
-    uint256 public captureFee = 0.001 ether;
+    // Fee for capturing a zone (in PYUSD tokens - 6 decimals)
+    uint256 public captureFee = 1000000; // 1 PYUSD (6 decimals)
 
     // Events
     event ZoneCaptured(
@@ -75,15 +81,20 @@ contract FitZone is
         uint256 daysPassed
     );
 
-    constructor() ERC721("FitConquer Zone", "FITZONE") Ownable(msg.sender) {}
+    constructor(address _pyusdToken) ERC721("FitConquer Zone", "FITZONE") Ownable(msg.sender) {
+        require(_pyusdToken != address(0), "Invalid PYUSD token address");
+        pyusdToken = IERC20(_pyusdToken);
+    }
 
     function claimZone(
         string calldata h3Index,
         uint256 baseScore
-    ) external payable nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused {
         require(bytes(h3Index).length > 0, "Invalid H3 index");
         require(baseScore >= minCaptureScore, "Score below minimum");
-        require(msg.value >= captureFee, "Insufficient fee");
+        
+        // Transfer PYUSD fee from user to contract
+        pyusdToken.safeTransferFrom(msg.sender, address(this), captureFee);
 
         uint256 tokenId = h3ToToken[h3Index];
 
@@ -93,11 +104,6 @@ contract FitZone is
         } else {
             // Zone exists, check if capture is valid
             _captureExistingZone(tokenId, baseScore, msg.sender);
-        }
-
-        // Refund excess payment
-        if (msg.value > captureFee) {
-            payable(msg.sender).transfer(msg.value - captureFee);
         }
     }
 
@@ -293,16 +299,16 @@ contract FitZone is
     }
 
     function withdraw() external onlyOwner {
-        uint256 balance = address(this).balance;
+        uint256 balance = pyusdToken.balanceOf(address(this));
         require(balance > 0, "No funds to withdraw");
-        payable(owner()).transfer(balance);
+        pyusdToken.safeTransfer(owner(), balance);
     }
 
     function emergencyWithdraw(
         address tokenContract,
         uint256 amount
     ) external onlyOwner {
-        IERC20(tokenContract).transfer(owner(), amount);
+        IERC20(tokenContract).safeTransfer(owner(), amount);
     }
 
     function _update(
