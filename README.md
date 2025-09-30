@@ -6,9 +6,7 @@
 ---
 
 ## 🔗 Demo & Links
-- 🌐 [Live Demo](https://your-demo-link.com)  
-- 🎥 [Video Walkthrough](https://your-video-link.com)  
-- 📖 [Presentation Deck](https://your-slides-link.com)  
+- 🌐 [Live Demo](https://runft.vercel.app)  
 
 ---
 
