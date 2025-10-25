@@ -89,10 +89,11 @@ export const useStrava = () => {
         const allowedOrigins = [
           window.location.origin,
           'https://eth.skillversus.xyz',
-          'https://runft.vercel.app'
+          'https://runft.vercel.app',
+          'https://runft.netlify.app'
         ];
         
-        if (!allowedOrigins.some(origin => event.origin === origin || event.origin.includes('localhost') || event.origin.includes('vercel.app') || event.origin.includes('skillversus.xyz'))) {
+        if (!allowedOrigins.some(origin => event.origin === origin || event.origin.includes('localhost') || event.origin.includes('vercel.app') || event.origin.includes('netlify.app') || event.origin.includes('skillversus.xyz'))) {
           console.log('Message rejected due to origin:', event.origin);
           return;
         }
